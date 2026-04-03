@@ -1,0 +1,20 @@
+{
+  "name": "agent-mvp",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.22.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "typescript": "^6.0.2"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^8.0.0",
+    "eslint": "^10.1.0"
+  }
+}
