@@ -4,9 +4,10 @@
     "target": "esnext",
     "jsx": "react-jsx",
     "moduleDetection": "force",
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
 
     // Paths
-    "baseUrl": ".",
     "module": "nodenext",
     "paths": {
       "@/*": ["src/*"]
