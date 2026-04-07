@@ -41,8 +41,10 @@ function resolveWorkspacePath(requestedPath: string) {
   }
 }
 
+const REGEX_LINE_SPLIT = /\r?\n/
+
 function selectContentByLines(content: string, startLine?: number, endLine?: number) {
-  const lines = content.split(/\r?\n/)
+  const lines = content.split(REGEX_LINE_SPLIT)
   const totalLines = lines.length
   const safeStartLine = startLine ?? 1
   const safeEndLine = endLine ?? totalLines
