@@ -7,9 +7,12 @@
   "author": "",
   "license": "ISC",
   "keywords": [],
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
+    "build": "tsdown",
+    "watch": "tsdown --watch",
+    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,6 +23,7 @@
     "@antfu/eslint-config": "^8.0.0",
     "@types/node": "^25.5.1",
     "eslint": "^10.1.0",
+    "tsdown": "^0.21.7",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }

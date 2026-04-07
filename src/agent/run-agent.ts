@@ -5,9 +5,9 @@ import type {
 } from 'openai/resources/chat/completions'
 import type {
   AgentRunInput,
-} from '../types/agent.js'
-import { createResponse } from '../llm/openai.js'
-import { executeToolCalls, toolDefinitions } from '../tools/index.js'
+} from '../types'
+import { createResponse } from '../llm'
+import { executeToolCalls, toolDefinitions } from '../tools'
 
 const MAX_TOOL_STEPS = 3
 

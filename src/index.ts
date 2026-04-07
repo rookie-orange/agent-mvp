@@ -1,5 +1,5 @@
 import process from 'node:process'
-import { runAgent } from './agent/run-agent.js'
+import { runAgent } from './agent'
 
 async function main() {
   const userInput = process.argv.slice(2).join(' ').trim()

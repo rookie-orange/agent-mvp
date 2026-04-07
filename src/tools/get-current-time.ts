@@ -1,4 +1,4 @@
-import type { AgentTool } from '../types/agent.js'
+import type { AgentTool } from '@/types'
 
 function getCurrentTime() {
   const now = new Date()

@@ -2,7 +2,7 @@ import type {
   ChatCompletionMessageToolCall,
   ChatCompletionToolMessageParam,
 } from 'openai/resources/chat/completions'
-import { getCurrentTimeTool } from './get-current-time.js'
+import { getCurrentTimeTool } from './get-current-time'
 
 const tools = [getCurrentTimeTool]
 

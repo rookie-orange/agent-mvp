@@ -1,6 +1,6 @@
-import type { CreateResponseParams } from '../types/agent.js'
+import type { CreateResponseParams } from '@/types'
 import OpenAI from 'openai'
-import { env } from '../config/env.js'
+import { env } from '@/config'
 
 function createClient() {
   const { apiKey, baseURL } = env

@@ -6,8 +6,9 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
 
+    "module": "esnext",
+    "moduleResolution": "bundler",
     // Paths
-    "module": "nodenext",
     "paths": {
       "@/*": ["src/*"]
     },
