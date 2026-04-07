@@ -1,25 +1,22 @@
 import type { CreateResponseParams } from '../types/agent.js'
-import process from 'node:process'
 import OpenAI from 'openai'
-
-const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
+import { env } from '../config/env.js'
 
 function createClient() {
-  const apiKey = process.env.OPENAI_API_KEY
-
-  if (!apiKey) {
-    throw new Error('缺少 OPENAI_API_KEY，请先在 .env 中配置。')
-  }
-
-  return new OpenAI({ apiKey })
+  const { apiKey, baseURL } = env
+  return new OpenAI({ apiKey, baseURL })
 }
 
-export async function createResponse(params: CreateResponseParams) {
+export async function createResponse({ instructions, input }: CreateResponseParams) {
+  const model = env.model
+
   const client = createClient()
 
-  return client.responses.create({
+  return await client.chat.completions.create({
     model,
-    instructions: params.instructions,
-    input: params.userInput,
+    messages: [
+      { role: 'system', content: instructions },
+      { role: 'user', content: input },
+    ],
   })
 }

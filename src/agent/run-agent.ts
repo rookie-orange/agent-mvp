@@ -12,8 +12,8 @@ function buildInstructions() {
 export async function runAgent(input: AgentRunInput) {
   const response = await createResponse({
     instructions: buildInstructions(),
-    userInput: input,
+    input,
   })
 
-  return response.output_text
+  return response.choices[0]!.message.content
 }
