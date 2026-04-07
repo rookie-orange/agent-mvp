@@ -7,16 +7,14 @@ function createClient() {
   return new OpenAI({ apiKey, baseURL })
 }
 
-export async function createResponse({ instructions, input }: CreateResponseParams) {
+export async function createResponse({ messages, tools }: CreateResponseParams) {
   const model = env.model
 
   const client = createClient()
 
   return await client.chat.completions.create({
     model,
-    messages: [
-      { role: 'system', content: instructions },
-      { role: 'user', content: input },
-    ],
+    messages,
+    tools,
   })
 }
