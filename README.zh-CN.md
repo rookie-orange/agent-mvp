@@ -21,6 +21,9 @@
   - `searchInFiles`
   - `writeFile`
   - `replaceInFile`
+  - `applyFileEdits`
+  - `moveFile`
+  - `deleteFile`
 - 通过 `tsdown` 构建可分发的 `.js` 产物
 
 ## 阶段进度

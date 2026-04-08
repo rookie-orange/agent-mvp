@@ -21,6 +21,9 @@ Current capabilities:
   - `searchInFiles`
   - `writeFile`
   - `replaceInFile`
+  - `applyFileEdits`
+  - `moveFile`
+  - `deleteFile`
 - `tsdown` build output for distributable `.js` files
 
 ## Stage Progress
