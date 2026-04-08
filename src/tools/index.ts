@@ -6,9 +6,19 @@ import { getCurrentTimeTool } from './get-current-time'
 import { listFilesTool } from './list-files'
 import { readLocalFileTool } from './read-local-file'
 import { readMultipleFilesTool } from './read-multiple-files'
+import { replaceInFileTool } from './replace-in-file'
 import { searchInFilesTool } from './search-in-files'
+import { writeFileTool } from './write-file'
 
-const tools = [getCurrentTimeTool, listFilesTool, readLocalFileTool, readMultipleFilesTool, searchInFilesTool]
+const tools = [
+  getCurrentTimeTool,
+  listFilesTool,
+  readLocalFileTool,
+  readMultipleFilesTool,
+  searchInFilesTool,
+  writeFileTool,
+  replaceInFileTool,
+]
 
 const toolRegistry = new Map(
   tools.map(tool => [tool.definition.function.name, tool]),

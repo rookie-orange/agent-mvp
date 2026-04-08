@@ -6,7 +6,7 @@ This is the smallest project designed for studying the evolution process of AI A
 
 ## Current Status
 
-The project is currently in the **workspace inspection tools** stage on the [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) branch.
+The project is currently in the **workspace read/write tools** stage on the [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) branch.
 
 Current capabilities:
 
@@ -17,19 +17,22 @@ Current capabilities:
   - `getCurrentTime`
   - `listFiles`
   - `readLocalFile`
+  - `readMultipleFiles`
   - `searchInFiles`
+  - `writeFile`
+  - `replaceInFile`
 - `tsdown` build output for distributable `.js` files
 
 ## Stage Progress
 
 ### Current Stage
 
-#### Stage 3: Workspace Inspection Tools
+#### Stage 3: Workspace Read/Write Tools
 
 - Status: In progress on [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - Focus:
   - let the agent inspect the local workspace before answering
-  - support directory listing, file reading, and keyword search
+  - support directory listing, file reading, keyword search, and controlled file modification
   - keep the tool loop minimal and easy to understand
 
 ### Completed Stages
@@ -58,6 +61,7 @@ Current capabilities:
 | --- | --- | --- | --- |
 | Stage 1: MVP CLI Agent | Completed | `stage/mvp` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmvp) |
 | Stage 2: Tool-Calling Agent Loop | Completed | `stage/tool-call` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ftool-call) |
+| Stage 3: Workspace Read/Write Tools | Current | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
 
 ## Project Structure
 

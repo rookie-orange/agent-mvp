@@ -9,7 +9,7 @@ import type {
 import { createResponse } from '../llm'
 import { executeToolCalls, toolDefinitions } from '../tools'
 
-const MAX_TOOL_STEPS = 3
+const MAX_TOOL_STEPS = 99
 
 function buildInstructions() {
   return [
@@ -20,7 +20,10 @@ function buildInstructions() {
     '当用户需要按关键词搜索、查找、定位某个变量、函数、配置或文案出现在哪里时，必须调用 searchInFiles。',
     '当用户要求查看、总结、解释当前工作区中的代码、配置或文档时，调用 readLocalFile 读取真实文件内容，不要臆测。',
     '当用户明确要求同时查看、比较、汇总多个文件时，优先调用 readMultipleFiles。',
+    '当用户要求创建新文件或在已知完整内容时重写文件，使用 writeFile。',
+    '当用户要求对现有文件做小范围精确修改时，优先先读取文件，再使用 replaceInFile。',
     '在没有实际调用工具之前，不要声称你正在搜索、已经查看了文件、或已经确认了代码内容。',
+    '在修改文件之前，优先先读取相关文件内容，避免盲改。',
     '拿到工具结果后，直接基于工具结果回答。',
   ].join('\n')
 }

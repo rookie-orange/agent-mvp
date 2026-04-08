@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+当前项目处于 **工作区读写工具阶段**，对应当前的 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) 分支。
+
 当前已经具备的能力：
 
 - 本地 CLI Agent 入口
@@ -15,19 +17,22 @@
   - `getCurrentTime`
   - `listFiles`
   - `readLocalFile`
+  - `readMultipleFiles`
   - `searchInFiles`
+  - `writeFile`
+  - `replaceInFile`
 - 通过 `tsdown` 构建可分发的 `.js` 产物
 
 ## 阶段进度
 
 ### 当前阶段
 
-#### 阶段 3：工作区检查工具
+#### 阶段 3：工作区读写工具
 
 - 状态：进行中，位于 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - 目标：
   - 让 Agent 在回答之前先检查本地工作区
-  - 支持目录列举、文件读取和关键词搜索
+  - 支持目录列举、文件读取、关键词搜索和受控文件修改
   - 保持工具调用闭环尽可能小而清晰
 
 ### 已完成阶段
@@ -56,6 +61,7 @@
 | --- | --- | --- | --- |
 | 阶段 1：MVP CLI Agent | 已完成 | `stage/mvp` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmvp) |
 | 阶段 2：Tool-Calling Agent Loop | 已完成 | `stage/tool-call` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ftool-call) |
+| 阶段 3：工作区读写工具 | 当前阶段 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
 
 ## 项目结构
 
