@@ -7,6 +7,12 @@ import { isNumber, isString } from '@/shared/general'
 const WORKSPACE_ROOT = process.cwd()
 const MAX_OUTPUT_CHARS = 12000
 
+export interface ReadWorkspaceFileInput {
+  path: string
+  startLine?: number
+  endLine?: number
+}
+
 function getLineNumber(value: unknown, fieldName: string) {
   if (value === undefined) {
     return undefined
@@ -81,6 +87,36 @@ function trimLargeContent(content: string) {
   }
 }
 
+export async function readWorkspaceFile({
+  path: requestedPath,
+  startLine,
+  endLine,
+}: ReadWorkspaceFileInput) {
+  const normalizedPath = getRequestedPath(requestedPath)
+  const normalizedStartLine = getLineNumber(startLine, 'startLine')
+  const normalizedEndLine = getLineNumber(endLine, 'endLine')
+  const { resolvedPath, relativePath } = resolveWorkspacePath(normalizedPath)
+
+  const fileStat = await stat(resolvedPath)
+
+  if (!fileStat.isFile()) {
+    throw new Error(`目标不是文件: ${relativePath}`)
+  }
+
+  const rawContent = await readFile(resolvedPath, 'utf8')
+  const selected = selectContentByLines(rawContent, normalizedStartLine, normalizedEndLine)
+  const trimmed = trimLargeContent(selected.content)
+
+  return {
+    path: relativePath,
+    totalLines: selected.totalLines,
+    startLine: selected.selectedStartLine,
+    endLine: selected.selectedEndLine,
+    truncated: trimmed.truncated,
+    content: trimmed.content,
+  }
+}
+
 export const readLocalFileTool: AgentTool = {
   definition: {
     type: 'function',
@@ -111,28 +147,18 @@ export const readLocalFileTool: AgentTool = {
     },
   },
   execute: async (args) => {
-    const requestedPath = getRequestedPath(args.path)
-    const startLine = getLineNumber(args.startLine, 'startLine')
-    const endLine = getLineNumber(args.endLine, 'endLine')
-    const { resolvedPath, relativePath } = resolveWorkspacePath(requestedPath)
-
-    const fileStat = await stat(resolvedPath)
-
-    if (!fileStat.isFile()) {
-      throw new Error(`目标不是文件: ${relativePath}`)
+    const input: ReadWorkspaceFileInput = {
+      path: args.path as string,
     }
 
-    const rawContent = await readFile(resolvedPath, 'utf8')
-    const selected = selectContentByLines(rawContent, startLine, endLine)
-    const trimmed = trimLargeContent(selected.content)
-
-    return {
-      path: relativePath,
-      totalLines: selected.totalLines,
-      startLine: selected.selectedStartLine,
-      endLine: selected.selectedEndLine,
-      truncated: trimmed.truncated,
-      content: trimmed.content,
+    if (args.startLine !== undefined) {
+      input.startLine = args.startLine as number
     }
+
+    if (args.endLine !== undefined) {
+      input.endLine = args.endLine as number
+    }
+
+    return await readWorkspaceFile(input)
   },
 }
