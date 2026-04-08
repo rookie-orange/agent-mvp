@@ -2,7 +2,7 @@ import type { AgentTool } from '@/types'
 import { readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
-import { isString } from '@/shared/general'
+import { isNumber, isString } from '@/shared/general'
 
 const WORKSPACE_ROOT = process.cwd()
 const MAX_OUTPUT_CHARS = 12000
@@ -12,7 +12,7 @@ function getLineNumber(value: unknown, fieldName: string) {
     return undefined
   }
 
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+  if (!isNumber(value) || !Number.isInteger(value) || value < 1) {
     throw new Error(`${fieldName} 必须是大于等于 1 的整数。`)
   }
 

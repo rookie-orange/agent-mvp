@@ -14,4 +14,8 @@ function isString(value: unknown): value is string {
   return typeof value === 'string'
 }
 
-export { isArray, isFunction, isObject, isString }
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !Number.isNaN(value)
+}
+
+export { isArray, isFunction, isNumber, isObject, isString }

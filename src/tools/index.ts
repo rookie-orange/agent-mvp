@@ -3,9 +3,10 @@ import type {
   ChatCompletionToolMessageParam,
 } from 'openai/resources/chat/completions'
 import { getCurrentTimeTool } from './get-current-time'
+import { listFilesTool } from './list-files'
 import { readLocalFileTool } from './read-local-file'
 
-const tools = [getCurrentTimeTool, readLocalFileTool]
+const tools = [getCurrentTimeTool, listFilesTool, readLocalFileTool]
 
 const toolRegistry = new Map(
   tools.map(tool => [tool.definition.function.name, tool]),
