@@ -1,4 +1,5 @@
 import { readWorkspaceFile } from './read'
+import { buildGitInspection } from '../git/shared'
 import { pathExists, resolveWorkspacePath } from './workspace'
 
 function getResultPath(result: Record<string, unknown>, fieldName: string) {
@@ -33,6 +34,7 @@ export async function buildMutationValidation(toolName: string, result: unknown)
     return {
       kind: 'readback',
       file: await readWorkspaceFile({ path: filePath }),
+      git: await buildGitInspection([filePath]),
     }
   }
 
@@ -48,6 +50,7 @@ export async function buildMutationValidation(toolName: string, result: unknown)
       kind: 'move-check',
       sourceExists: await existsInWorkspace(fromPath),
       destination: await readWorkspaceFile({ path: toPath }),
+      git: await buildGitInspection([fromPath, toPath]),
     }
   }
 
@@ -61,6 +64,7 @@ export async function buildMutationValidation(toolName: string, result: unknown)
     return {
       kind: 'delete-check',
       existsAfterDelete: await existsInWorkspace(filePath),
+      git: await buildGitInspection([filePath]),
     }
   }
 

@@ -12,6 +12,7 @@ import {
   writeFileTool,
 } from './files'
 import { getCurrentTimeTool } from './get-current-time'
+import { gitDiffTool, gitStatusTool } from './git'
 
 const tools = [
   getCurrentTimeTool,
@@ -19,6 +20,8 @@ const tools = [
   readLocalFileTool,
   readMultipleFilesTool,
   searchInFilesTool,
+  gitStatusTool,
+  gitDiffTool,
   writeFileTool,
   replaceInFileTool,
   applyFileEditsTool,
