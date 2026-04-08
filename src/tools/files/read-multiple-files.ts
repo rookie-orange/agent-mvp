@@ -1,6 +1,7 @@
 import type { AgentTool } from '@/types'
-import { isArray, isNumber, isObject, isString } from '@/shared/general'
-import { readWorkspaceFile } from './read-local-file'
+import { isArray, isObject } from '@/shared/general'
+import { getIntegerOption, getLineNumber, getRequiredPath } from './args'
+import { readWorkspaceFile } from './read'
 
 const DEFAULT_MAX_FILES = 5
 const MAX_ALLOWED_FILES = 10
@@ -9,34 +10,6 @@ interface ReadMultipleFilesItem {
   path: string
   startLine?: number
   endLine?: number
-}
-
-function getMaxFiles(value: unknown) {
-  if (value === undefined) {
-    return DEFAULT_MAX_FILES
-  }
-
-  if (!isNumber(value) || !Number.isInteger(value)) {
-    throw new Error('maxFiles 必须是整数。')
-  }
-
-  if (value < 1 || value > MAX_ALLOWED_FILES) {
-    throw new Error(`maxFiles 必须在 1 到 ${MAX_ALLOWED_FILES} 之间。`)
-  }
-
-  return value
-}
-
-function getOptionalLineNumber(value: unknown, fieldName: string) {
-  if (value === undefined) {
-    return undefined
-  }
-
-  if (!isNumber(value) || !Number.isInteger(value) || value < 1) {
-    throw new Error(`${fieldName} 必须是大于等于 1 的整数。`)
-  }
-
-  return value
 }
 
 function parseFiles(value: unknown, maxFiles: number): ReadMultipleFilesItem[] {
@@ -53,16 +26,12 @@ function parseFiles(value: unknown, maxFiles: number): ReadMultipleFilesItem[] {
       throw new Error(`files[${index}] 必须是对象。`)
     }
 
-    if (!isString(item.path) || !item.path.trim()) {
-      throw new Error(`files[${index}].path 必须是非空字符串。`)
-    }
-
     const normalizedItem: ReadMultipleFilesItem = {
-      path: item.path.trim(),
+      path: getRequiredPath(item.path, `files[${index}].path`),
     }
 
-    const startLine = getOptionalLineNumber(item.startLine, `files[${index}].startLine`)
-    const endLine = getOptionalLineNumber(item.endLine, `files[${index}].endLine`)
+    const startLine = getLineNumber(item.startLine, `files[${index}].startLine`)
+    const endLine = getLineNumber(item.endLine, `files[${index}].endLine`)
 
     if (startLine !== undefined) {
       normalizedItem.startLine = startLine
@@ -123,7 +92,11 @@ export const readMultipleFilesTool: AgentTool = {
     },
   },
   execute: async (args) => {
-    const maxFiles = getMaxFiles(args.maxFiles)
+    const maxFiles = getIntegerOption(args.maxFiles, 'maxFiles', {
+      fallback: DEFAULT_MAX_FILES,
+      min: 1,
+      max: MAX_ALLOWED_FILES,
+    })!
     const files = parseFiles(args.files, maxFiles)
     const results = await Promise.all(
       files.map(async (file) => {

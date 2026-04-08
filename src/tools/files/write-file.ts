@@ -1,63 +1,9 @@
 import type { AgentTool } from '@/types'
 import { Buffer } from 'node:buffer'
-import { writeFile as fsWriteFile, mkdir, stat } from 'node:fs/promises'
+import { writeFile as fsWriteFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
-import process from 'node:process'
-import { isString } from '@/shared/general'
-
-const WORKSPACE_ROOT = process.cwd()
-
-function getRequestedPath(value: unknown) {
-  if (!isString(value) || !value.trim()) {
-    throw new Error('path 必须是非空字符串。')
-  }
-
-  return value.trim()
-}
-
-function getContent(value: unknown) {
-  if (!isString(value)) {
-    throw new Error('content 必须是字符串。')
-  }
-
-  return value
-}
-
-function getBooleanOption(value: unknown, fieldName: string, fallback: boolean) {
-  if (value === undefined) {
-    return fallback
-  }
-
-  if (typeof value !== 'boolean') {
-    throw new TypeError(`${fieldName} 必须是布尔值。`)
-  }
-
-  return value
-}
-
-function resolveWorkspacePath(requestedPath: string) {
-  const resolvedPath = path.resolve(WORKSPACE_ROOT, requestedPath)
-  const relativePath = path.relative(WORKSPACE_ROOT, resolvedPath)
-
-  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    throw new Error('只允许写入当前工作区内的文件。')
-  }
-
-  return {
-    resolvedPath,
-    relativePath: relativePath || '.',
-  }
-}
-
-async function fileExists(filePath: string) {
-  try {
-    await stat(filePath)
-    return true
-  }
-  catch {
-    return false
-  }
-}
+import { getBooleanOption, getRequiredPath, getRequiredString } from './args'
+import { pathExists, resolveWorkspacePath } from './workspace'
 
 export const writeFileTool: AgentTool = {
   definition: {
@@ -91,12 +37,15 @@ export const writeFileTool: AgentTool = {
     },
   },
   execute: async (args) => {
-    const requestedPath = getRequestedPath(args.path)
-    const content = getContent(args.content)
+    const requestedPath = getRequiredPath(args.path)
+    const content = getRequiredString(args.content, 'content')
     const overwrite = getBooleanOption(args.overwrite, 'overwrite', false)
     const createDirectories = getBooleanOption(args.createDirectories, 'createDirectories', true)
-    const { resolvedPath, relativePath } = resolveWorkspacePath(requestedPath)
-    const existed = await fileExists(resolvedPath)
+    const { resolvedPath, relativePath } = resolveWorkspacePath(
+      requestedPath,
+      '只允许写入当前工作区内的文件。',
+    )
+    const existed = await pathExists(resolvedPath)
 
     if (existed && !overwrite) {
       throw new Error(`文件已存在，若要覆盖请显式传入 overwrite=true: ${relativePath}`)

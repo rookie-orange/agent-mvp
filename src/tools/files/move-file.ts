@@ -1,54 +1,8 @@
 import type { AgentTool } from '@/types'
 import { mkdir, rename, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
-import process from 'node:process'
-import { isString } from '@/shared/general'
-
-const WORKSPACE_ROOT = process.cwd()
-
-function getRequestedPath(value: unknown, fieldName: string) {
-  if (!isString(value) || !value.trim()) {
-    throw new Error(`${fieldName} 必须是非空字符串。`)
-  }
-
-  return value.trim()
-}
-
-function getBooleanOption(value: unknown, fieldName: string, fallback: boolean) {
-  if (value === undefined) {
-    return fallback
-  }
-
-  if (typeof value !== 'boolean') {
-    throw new TypeError(`${fieldName} 必须是布尔值。`)
-  }
-
-  return value
-}
-
-function resolveWorkspacePath(requestedPath: string) {
-  const resolvedPath = path.resolve(WORKSPACE_ROOT, requestedPath)
-  const relativePath = path.relative(WORKSPACE_ROOT, resolvedPath)
-
-  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    throw new Error('只允许移动当前工作区内的文件。')
-  }
-
-  return {
-    resolvedPath,
-    relativePath: relativePath || '.',
-  }
-}
-
-async function pathExists(filePath: string) {
-  try {
-    await stat(filePath)
-    return true
-  }
-  catch {
-    return false
-  }
-}
+import { getBooleanOption, getRequiredPath } from './args'
+import { pathExists, resolveWorkspacePath } from './workspace'
 
 export const moveFileTool: AgentTool = {
   definition: {
@@ -82,12 +36,12 @@ export const moveFileTool: AgentTool = {
     },
   },
   execute: async (args) => {
-    const fromPath = getRequestedPath(args.fromPath, 'fromPath')
-    const toPath = getRequestedPath(args.toPath, 'toPath')
+    const fromPath = getRequiredPath(args.fromPath, 'fromPath')
+    const toPath = getRequiredPath(args.toPath, 'toPath')
     const overwrite = getBooleanOption(args.overwrite, 'overwrite', false)
     const createDirectories = getBooleanOption(args.createDirectories, 'createDirectories', true)
-    const from = resolveWorkspacePath(fromPath)
-    const to = resolveWorkspacePath(toPath)
+    const from = resolveWorkspacePath(fromPath, '只允许移动当前工作区内的文件。')
+    const to = resolveWorkspacePath(toPath, '只允许移动当前工作区内的文件。')
 
     if (from.resolvedPath === to.resolvedPath) {
       throw new Error('源路径和目标路径不能相同。')

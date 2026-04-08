@@ -1,67 +1,12 @@
 import type { AgentTool } from '@/types'
 import { readdir, stat } from 'node:fs/promises'
 import path from 'node:path'
-import process from 'node:process'
-import { isNumber, isString } from '@/shared/general'
+import { getBooleanOption, getIntegerOption, getPathWithDefault } from './args'
+import { resolveWorkspacePath } from './workspace'
 
-const WORKSPACE_ROOT = process.cwd()
 const DEFAULT_MAX_ENTRIES = 200
 const MAX_ALLOWED_ENTRIES = 1000
 const IGNORED_DIRECTORIES = new Set(['.git', 'dist', 'node_modules'])
-
-function getRequestedPath(value: unknown) {
-  if (value === undefined) {
-    return '.'
-  }
-
-  if (!isString(value) || !value.trim()) {
-    throw new Error('path 必须是非空字符串。')
-  }
-
-  return value.trim()
-}
-
-function getRecursive(value: unknown) {
-  if (value === undefined) {
-    return true
-  }
-
-  if (typeof value !== 'boolean') {
-    throw new TypeError('recursive 必须是布尔值。')
-  }
-
-  return value
-}
-
-function getMaxEntries(value: unknown) {
-  if (value === undefined) {
-    return DEFAULT_MAX_ENTRIES
-  }
-
-  if (!isNumber(value) || !Number.isInteger(value)) {
-    throw new Error('maxEntries 必须是整数。')
-  }
-
-  if (value < 1 || value > MAX_ALLOWED_ENTRIES) {
-    throw new Error(`maxEntries 必须在 1 到 ${MAX_ALLOWED_ENTRIES} 之间。`)
-  }
-
-  return value
-}
-
-function resolveWorkspacePath(requestedPath: string) {
-  const resolvedPath = path.resolve(WORKSPACE_ROOT, requestedPath)
-  const relativePath = path.relative(WORKSPACE_ROOT, resolvedPath)
-
-  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    throw new Error('只允许读取当前工作区内的路径。')
-  }
-
-  return {
-    resolvedPath,
-    relativePath: relativePath || '.',
-  }
-}
 
 function shouldIgnoreDirectory(name: string) {
   return IGNORED_DIRECTORIES.has(name)
@@ -158,10 +103,17 @@ export const listFilesTool: AgentTool = {
     },
   },
   execute: async (args) => {
-    const requestedPath = getRequestedPath(args.path)
-    const recursive = getRecursive(args.recursive)
-    const maxEntries = getMaxEntries(args.maxEntries)
-    const { resolvedPath, relativePath } = resolveWorkspacePath(requestedPath)
+    const requestedPath = getPathWithDefault(args.path)
+    const recursive = getBooleanOption(args.recursive, 'recursive', true)
+    const maxEntries = getIntegerOption(args.maxEntries, 'maxEntries', {
+      fallback: DEFAULT_MAX_ENTRIES,
+      min: 1,
+      max: MAX_ALLOWED_ENTRIES,
+    })!
+    const { resolvedPath, relativePath } = resolveWorkspacePath(
+      requestedPath,
+      '只允许读取当前工作区内的路径。',
+    )
     const targetStat = await stat(resolvedPath)
 
     if (targetStat.isFile()) {

@@ -1,77 +1,14 @@
 import type { AgentTool } from '@/types'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
-import process from 'node:process'
-import { isNumber, isString } from '@/shared/general'
+import { getBooleanOption, getIntegerOption, getNonEmptyString, getPathWithDefault } from './args'
+import { resolveWorkspacePath } from './workspace'
 
-const WORKSPACE_ROOT = process.cwd()
 const DEFAULT_MAX_RESULTS = 30
 const MAX_ALLOWED_RESULTS = 200
 const MAX_FILE_SIZE_BYTES = 256 * 1024
 const IGNORED_DIRECTORIES = new Set(['.git', 'dist', 'node_modules'])
 const REGEX_LINE_SPLIT = /\r?\n/
-
-function getQuery(value: unknown) {
-  if (!isString(value) || !value.trim()) {
-    throw new Error('query 必须是非空字符串。')
-  }
-
-  return value.trim()
-}
-
-function getRequestedPath(value: unknown) {
-  if (value === undefined) {
-    return '.'
-  }
-
-  if (!isString(value) || !value.trim()) {
-    throw new Error('path 必须是非空字符串。')
-  }
-
-  return value.trim()
-}
-
-function getCaseSensitive(value: unknown) {
-  if (value === undefined) {
-    return false
-  }
-
-  if (typeof value !== 'boolean') {
-    throw new TypeError('caseSensitive 必须是布尔值。')
-  }
-
-  return value
-}
-
-function getMaxResults(value: unknown) {
-  if (value === undefined) {
-    return DEFAULT_MAX_RESULTS
-  }
-
-  if (!isNumber(value) || !Number.isInteger(value)) {
-    throw new Error('maxResults 必须是整数。')
-  }
-
-  if (value < 1 || value > MAX_ALLOWED_RESULTS) {
-    throw new Error(`maxResults 必须在 1 到 ${MAX_ALLOWED_RESULTS} 之间。`)
-  }
-
-  return value
-}
-
-function resolveWorkspacePath(requestedPath: string) {
-  const resolvedPath = path.resolve(WORKSPACE_ROOT, requestedPath)
-  const relativePath = path.relative(WORKSPACE_ROOT, resolvedPath)
-
-  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    throw new Error('只允许搜索当前工作区内的路径。')
-  }
-
-  return {
-    resolvedPath,
-    relativePath: relativePath || '.',
-  }
-}
 
 function shouldIgnoreDirectory(name: string) {
   return IGNORED_DIRECTORIES.has(name)
@@ -157,7 +94,7 @@ async function searchDirectory(
   const matches: FileMatch[] = []
   let truncated = false
 
-  async function _visit(currentResolvedPath: string, currentRelativePath: string): Promise<void> {
+  async function visit(currentResolvedPath: string, currentRelativePath: string): Promise<void> {
     if (matches.length >= maxResults) {
       truncated = true
       return
@@ -205,11 +142,11 @@ async function searchDirectory(
         ? entry.name
         : path.join(currentRelativePath, entry.name)
 
-      await _visit(nextResolvedPath, nextRelativePath)
+      await visit(nextResolvedPath, nextRelativePath)
     }
   }
 
-  await _visit(resolvedPath, relativePath)
+  await visit(resolvedPath, relativePath)
 
   return {
     matches,
@@ -251,12 +188,19 @@ export const searchInFilesTool: AgentTool = {
     },
   },
   execute: async (args) => {
-    const query = getQuery(args.query)
-    const requestedPath = getRequestedPath(args.path)
-    const caseSensitive = getCaseSensitive(args.caseSensitive)
-    const maxResults = getMaxResults(args.maxResults)
+    const query = getNonEmptyString(args.query, 'query')
+    const requestedPath = getPathWithDefault(args.path)
+    const caseSensitive = getBooleanOption(args.caseSensitive, 'caseSensitive', false)
+    const maxResults = getIntegerOption(args.maxResults, 'maxResults', {
+      fallback: DEFAULT_MAX_RESULTS,
+      min: 1,
+      max: MAX_ALLOWED_RESULTS,
+    })!
     const comparableQuery = createComparableText(query, caseSensitive)
-    const { resolvedPath, relativePath } = resolveWorkspacePath(requestedPath)
+    const { resolvedPath, relativePath } = resolveWorkspacePath(
+      requestedPath,
+      '只允许搜索当前工作区内的路径。',
+    )
     const { matches, truncated } = await searchDirectory(
       resolvedPath,
       relativePath,

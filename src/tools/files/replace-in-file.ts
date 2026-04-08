@@ -1,95 +1,9 @@
 import type { AgentTool } from '@/types'
 import { Buffer } from 'node:buffer'
 import { readFile, stat, writeFile } from 'node:fs/promises'
-import path from 'node:path'
-import process from 'node:process'
-import { isNumber, isString } from '@/shared/general'
-
-const WORKSPACE_ROOT = process.cwd()
-
-function getRequestedPath(value: unknown) {
-  if (!isString(value) || !value.trim()) {
-    throw new Error('path 必须是非空字符串。')
-  }
-
-  return value.trim()
-}
-
-function getText(value: unknown, fieldName: string) {
-  if (!isString(value)) {
-    throw new Error(`${fieldName} 必须是字符串。`)
-  }
-
-  return value
-}
-
-function getBooleanOption(value: unknown, fieldName: string, fallback: boolean) {
-  if (value === undefined) {
-    return fallback
-  }
-
-  if (typeof value !== 'boolean') {
-    throw new TypeError(`${fieldName} 必须是布尔值。`)
-  }
-
-  return value
-}
-
-function getExpectedOccurrences(value: unknown, fallback?: number) {
-  if (value === undefined) {
-    return fallback
-  }
-
-  if (!isNumber(value) || !Number.isInteger(value) || value < 0) {
-    throw new Error('expectedOccurrences 必须是大于等于 0 的整数。')
-  }
-
-  return value
-}
-
-function resolveWorkspacePath(requestedPath: string) {
-  const resolvedPath = path.resolve(WORKSPACE_ROOT, requestedPath)
-  const relativePath = path.relative(WORKSPACE_ROOT, resolvedPath)
-
-  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-    throw new Error('只允许修改当前工作区内的文件。')
-  }
-
-  return {
-    resolvedPath,
-    relativePath: relativePath || '.',
-  }
-}
-
-function countOccurrences(content: string, target: string) {
-  if (!target) {
-    return 0
-  }
-
-  let count = 0
-  let startIndex = 0
-
-  while (true) {
-    const index = content.indexOf(target, startIndex)
-
-    if (index === -1) {
-      return count
-    }
-
-    count += 1
-    startIndex = index + target.length
-  }
-}
-
-function replaceFirstOccurrence(content: string, find: string, replace: string) {
-  const index = content.indexOf(find)
-
-  if (index === -1) {
-    return content
-  }
-
-  return `${content.slice(0, index)}${replace}${content.slice(index + find.length)}`
-}
+import { getBooleanOption, getExpectedOccurrences, getRequiredPath, getRequiredString } from './args'
+import { countOccurrences, replaceFirstOccurrence } from './text-edits'
+import { resolveWorkspacePath } from './workspace'
 
 export const replaceInFileTool: AgentTool = {
   definition: {
@@ -128,12 +42,15 @@ export const replaceInFileTool: AgentTool = {
     },
   },
   execute: async (args) => {
-    const requestedPath = getRequestedPath(args.path)
-    const find = getText(args.find, 'find')
-    const replace = getText(args.replace, 'replace')
+    const requestedPath = getRequiredPath(args.path)
+    const find = getRequiredString(args.find, 'find')
+    const replace = getRequiredString(args.replace, 'replace')
     const replaceAll = getBooleanOption(args.replaceAll, 'replaceAll', false)
     const expectedOccurrences = getExpectedOccurrences(args.expectedOccurrences, replaceAll ? undefined : 1)
-    const { resolvedPath, relativePath } = resolveWorkspacePath(requestedPath)
+    const { resolvedPath, relativePath } = resolveWorkspacePath(
+      requestedPath,
+      '只允许修改当前工作区内的文件。',
+    )
 
     if (!find) {
       throw new Error('find 不能为空字符串。')
