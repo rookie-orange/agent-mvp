@@ -5,8 +5,9 @@ import type {
 import { getCurrentTimeTool } from './get-current-time'
 import { listFilesTool } from './list-files'
 import { readLocalFileTool } from './read-local-file'
+import { searchInFilesTool } from './search-in-files'
 
-const tools = [getCurrentTimeTool, listFilesTool, readLocalFileTool]
+const tools = [getCurrentTimeTool, listFilesTool, readLocalFileTool, searchInFilesTool]
 
 const toolRegistry = new Map(
   tools.map(tool => [tool.definition.function.name, tool]),
