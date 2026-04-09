@@ -9,7 +9,11 @@ import type {
 import { createResponse } from '../llm'
 import { executeToolCalls, toolDefinitions } from '../tools'
 
-const MAX_TOOL_STEPS = 99
+
+/**
+ * Agent max tool calling steps
+ */
+const MAX_TOOL_STEPS = 10
 
 function buildInstructions() {
   return [
