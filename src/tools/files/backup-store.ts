@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { chmod, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { getNonEmptyString } from './args'
@@ -36,6 +36,15 @@ interface RestoreBackupInput {
   backupId: string
 }
 
+interface BackupQueryInput {
+  path?: string
+  operation?: string
+}
+
+interface ListBackupsInput extends BackupQueryInput {
+  maxEntries: number
+}
+
 export interface BackupSummary {
   id: string
   createdAt: string
@@ -58,6 +67,15 @@ export interface RestoreBackupSummary {
   restoredCount: number
 }
 
+export interface ListBackupsSummary {
+  path?: string
+  operation?: string
+  totalBackups: number
+  returnedCount: number
+  truncated: boolean
+  backups: BackupSummary[]
+}
+
 function getWorkspaceBackupRoot() {
   const workspaceHash = createHash('sha256')
     .update(WORKSPACE_ROOT)
@@ -73,6 +91,15 @@ function getBackupDirectory(backupId: string) {
 
 function getMetadataPath(backupId: string) {
   return path.join(getBackupDirectory(backupId), 'metadata.json')
+}
+
+function toBackupSummary(record: BackupRecord): BackupSummary {
+  return {
+    id: record.id,
+    createdAt: record.createdAt,
+    operation: record.operation,
+    affectedPaths: record.snapshots.map(snapshot => snapshot.path),
+  }
 }
 
 function dedupeEntries(entries: BackupEntryInput[]) {
@@ -95,6 +122,116 @@ async function readBackupRecord(backupId: string) {
   }
 
   return parsed
+}
+
+async function readBackupRecordSafe(backupId: string) {
+  try {
+    return await readBackupRecord(backupId)
+  }
+  catch {
+    return undefined
+  }
+}
+
+function normalizePathFilter(requestedPath?: string) {
+  if (requestedPath === undefined) {
+    return undefined
+  }
+
+  const normalizedPath = getNonEmptyString(requestedPath, 'path')
+  const { relativePath } = resolveWorkspacePath(
+    normalizedPath,
+    '只允许查询当前工作区内的备份信息。',
+  )
+
+  return relativePath
+}
+
+function normalizeOperationFilter(operation?: string) {
+  if (operation === undefined) {
+    return undefined
+  }
+
+  return getNonEmptyString(operation, 'operation')
+}
+
+function matchesPathFilter(summary: BackupSummary, pathFilter?: string) {
+  if (!pathFilter || pathFilter === '.') {
+    return true
+  }
+
+  return summary.affectedPaths.some((affectedPath) => {
+    return affectedPath === pathFilter || affectedPath.startsWith(`${pathFilter}/`)
+  })
+}
+
+function matchesOperationFilter(summary: BackupSummary, operationFilter?: string) {
+  if (!operationFilter) {
+    return true
+  }
+
+  return summary.operation === operationFilter
+}
+
+async function loadBackupSummaries() {
+  const backupRoot = getWorkspaceBackupRoot()
+  const rootExists = await pathExists(backupRoot)
+
+  if (!rootExists) {
+    return [] as BackupSummary[]
+  }
+
+  const entries = await readdir(backupRoot, { withFileTypes: true })
+  const records = await Promise.all(
+    entries
+      .filter(entry => entry.isDirectory())
+      .map(async entry => await readBackupRecordSafe(entry.name)),
+  )
+
+  return records
+    .filter((record): record is BackupRecord => Boolean(record))
+    .map(toBackupSummary)
+    .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
+}
+
+function filterBackupSummaries(
+  backups: BackupSummary[],
+  {
+    path,
+    operation,
+  }: BackupQueryInput,
+) {
+  const normalizedPath = normalizePathFilter(path)
+  const normalizedOperation = normalizeOperationFilter(operation)
+
+  return {
+    path: normalizedPath,
+    operation: normalizedOperation,
+    backups: backups.filter(summary =>
+      matchesPathFilter(summary, normalizedPath)
+      && matchesOperationFilter(summary, normalizedOperation),
+    ),
+  }
+}
+
+function createBackupQueryInput({
+  path,
+  operation,
+}: {
+  path: string | undefined
+  operation: string | undefined
+}): BackupQueryInput {
+  const query: BackupQueryInput = {}
+
+  if (path !== undefined) {
+    query.path = path
+  }
+
+  if (operation !== undefined) {
+    query.operation = operation
+  }
+
+  return query
 }
 
 export async function createBackup({
@@ -245,4 +382,65 @@ export async function restoreBackup({
     restoredPaths,
     restoredCount: restoredPaths.length,
   }
+}
+
+export async function listBackups({
+  path,
+  operation,
+  maxEntries,
+}: ListBackupsInput): Promise<ListBackupsSummary> {
+  const allBackups = await loadBackupSummaries()
+  const filtered = filterBackupSummaries(
+    allBackups,
+    createBackupQueryInput({ path, operation }),
+  )
+  const backups = filtered.backups.slice(0, maxEntries)
+
+  const result: ListBackupsSummary = {
+    totalBackups: filtered.backups.length,
+    returnedCount: backups.length,
+    truncated: filtered.backups.length > maxEntries,
+    backups,
+  }
+
+  if (filtered.path !== undefined) {
+    result.path = filtered.path
+  }
+
+  if (filtered.operation !== undefined) {
+    result.operation = filtered.operation
+  }
+
+  return result
+}
+
+export async function getLatestBackup(query: BackupQueryInput = {}) {
+  const allBackups = await loadBackupSummaries()
+  const filtered = filterBackupSummaries(allBackups, query)
+  const latestBackup = filtered.backups[0]
+
+  if (!latestBackup) {
+    const pathMessage = filtered.path ? ` path=${filtered.path}` : ''
+    const operationMessage = filtered.operation ? ` operation=${filtered.operation}` : ''
+
+    throw new Error(`未找到匹配的备份。${pathMessage}${operationMessage}`.trim())
+  }
+
+  const result: {
+    path?: string
+    operation?: string
+    backup: BackupSummary
+  } = {
+    backup: latestBackup,
+  }
+
+  if (filtered.path !== undefined) {
+    result.path = filtered.path
+  }
+
+  if (filtered.operation !== undefined) {
+    result.operation = filtered.operation
+  }
+
+  return result
 }
