@@ -1,6 +1,7 @@
 import type { AgentTool } from '@/types'
 import { rm, stat } from 'node:fs/promises'
 import { getBooleanOption, getRequiredPath } from './args'
+import { createBackup } from './backup-store'
 import { pathExists, resolveWorkspacePath } from './workspace'
 
 export const deleteFileTool: AgentTool = {
@@ -53,12 +54,24 @@ export const deleteFileTool: AgentTool = {
       throw new Error(`目标不是文件: ${relativePath}`)
     }
 
+    const backup = await createBackup({
+      operation: 'deleteFile',
+      entries: [
+        {
+          path: relativePath,
+          resolvedPath,
+          existed: true,
+        },
+      ],
+    })
+
     await rm(resolvedPath)
 
     return {
       path: relativePath,
       deleted: true,
       ignoredMissing: false,
+      backup,
     }
   },
 }

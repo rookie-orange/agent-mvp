@@ -2,6 +2,7 @@ import type { AgentTool } from '@/types'
 import { mkdir, rename, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { getBooleanOption, getRequiredPath } from './args'
+import { createBackup } from './backup-store'
 import { pathExists, resolveWorkspacePath } from './workspace'
 
 export const moveFileTool: AgentTool = {
@@ -65,7 +66,25 @@ export const moveFileTool: AgentTool = {
       if (!destinationStat.isFile()) {
         throw new Error(`目标不是文件: ${to.relativePath}`)
       }
+    }
 
+    const backup = await createBackup({
+      operation: 'moveFile',
+      entries: [
+        {
+          path: from.relativePath,
+          resolvedPath: from.resolvedPath,
+          existed: true,
+        },
+        {
+          path: to.relativePath,
+          resolvedPath: to.resolvedPath,
+          existed: destinationExists,
+        },
+      ],
+    })
+
+    if (destinationExists) {
       await rm(to.resolvedPath)
     }
 
@@ -79,6 +98,7 @@ export const moveFileTool: AgentTool = {
       fromPath: from.relativePath,
       toPath: to.relativePath,
       overwritten: destinationExists,
+      backup,
     }
   },
 }

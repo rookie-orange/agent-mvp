@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { isArray, isObject } from '@/shared/general'
 import { getBooleanOption, getExpectedOccurrences, getRequiredPath, getRequiredString } from './args'
+import { createBackup } from './backup-store'
 import { countOccurrences, replaceFirstOccurrence } from './text-edits'
 import { resolveWorkspacePath } from './workspace'
 
@@ -146,6 +147,17 @@ export const applyFileEditsTool: AgentTool = {
       throw new Error('应用编辑后文件内容没有变化。')
     }
 
+    const backup = await createBackup({
+      operation: 'applyFileEdits',
+      entries: [
+        {
+          path: relativePath,
+          resolvedPath,
+          existed: true,
+        },
+      ],
+    })
+
     await writeFile(resolvedPath, nextContent, 'utf8')
 
     return {
@@ -154,6 +166,7 @@ export const applyFileEditsTool: AgentTool = {
       totalReplacements,
       appliedEdits,
       bytesDelta: Buffer.byteLength(nextContent, 'utf8') - Buffer.byteLength(originalContent, 'utf8'),
+      backup,
     }
   },
 }

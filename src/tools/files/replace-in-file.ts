@@ -2,6 +2,7 @@ import type { AgentTool } from '@/types'
 import { Buffer } from 'node:buffer'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { getBooleanOption, getExpectedOccurrences, getRequiredPath, getRequiredString } from './args'
+import { createBackup } from './backup-store'
 import { countOccurrences, replaceFirstOccurrence } from './text-edits'
 import { resolveWorkspacePath } from './workspace'
 
@@ -81,6 +82,17 @@ export const replaceInFileTool: AgentTool = {
       throw new Error('替换后文件内容没有变化。')
     }
 
+    const backup = await createBackup({
+      operation: 'replaceInFile',
+      entries: [
+        {
+          path: relativePath,
+          resolvedPath,
+          existed: true,
+        },
+      ],
+    })
+
     await writeFile(resolvedPath, nextContent, 'utf8')
 
     return {
@@ -88,6 +100,7 @@ export const replaceInFileTool: AgentTool = {
       replacedOccurrences: replaceAll ? actualOccurrences : 1,
       replaceAll,
       bytesDelta: Buffer.byteLength(nextContent, 'utf8') - Buffer.byteLength(originalContent, 'utf8'),
+      backup,
     }
   },
 }

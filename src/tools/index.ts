@@ -8,6 +8,7 @@ import {
   readLocalFileTool,
   readMultipleFilesTool,
   replaceInFileTool,
+  restoreBackupTool,
   searchInFilesTool,
   writeFileTool,
 } from './files'
@@ -27,6 +28,7 @@ const tools = [
   applyFileEditsTool,
   moveFileTool,
   deleteFileTool,
+  restoreBackupTool,
 ]
 
 const toolRegistry = new Map(

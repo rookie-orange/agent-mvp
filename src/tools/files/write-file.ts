@@ -1,8 +1,9 @@
 import type { AgentTool } from '@/types'
 import { Buffer } from 'node:buffer'
-import { writeFile as fsWriteFile, mkdir } from 'node:fs/promises'
+import { writeFile as fsWriteFile, mkdir, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { getBooleanOption, getRequiredPath, getRequiredString } from './args'
+import { createBackup } from './backup-store'
 import { pathExists, resolveWorkspacePath } from './workspace'
 
 export const writeFileTool: AgentTool = {
@@ -51,6 +52,25 @@ export const writeFileTool: AgentTool = {
       throw new Error(`文件已存在，若要覆盖请显式传入 overwrite=true: ${relativePath}`)
     }
 
+    if (existed) {
+      const targetStat = await stat(resolvedPath)
+
+      if (!targetStat.isFile()) {
+        throw new Error(`目标不是文件: ${relativePath}`)
+      }
+    }
+
+    const backup = await createBackup({
+      operation: 'writeFile',
+      entries: [
+        {
+          path: relativePath,
+          resolvedPath,
+          existed,
+        },
+      ],
+    })
+
     if (createDirectories) {
       await mkdir(path.dirname(resolvedPath), { recursive: true })
     }
@@ -62,6 +82,7 @@ export const writeFileTool: AgentTool = {
       created: !existed,
       overwritten: existed,
       bytesWritten: Buffer.byteLength(content, 'utf8'),
+      backup,
     }
   },
 }

@@ -1,4 +1,5 @@
 export { applyFileEditsTool } from './apply-file-edits'
+export { restoreBackupTool } from './restore-backup'
 export { deleteFileTool } from './delete-file'
 export { listFilesTool } from './list-files'
 export { moveFileTool } from './move-file'
