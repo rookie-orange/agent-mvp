@@ -95,7 +95,7 @@ export async function buildMutationValidation(toolName: string, result: unknown)
     }
   }
 
-  if (toolName === 'restoreBackup') {
+  if (toolName === 'restoreBackup' || toolName === 'rollbackLatest') {
     const affectedPaths = 'affectedPaths' in normalizedResult && Array.isArray(normalizedResult.affectedPaths)
       ? normalizedResult.affectedPaths.filter((value): value is string => typeof value === 'string')
       : []

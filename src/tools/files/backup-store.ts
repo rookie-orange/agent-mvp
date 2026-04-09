@@ -444,3 +444,15 @@ export async function getLatestBackup(query: BackupQueryInput = {}) {
 
   return result
 }
+
+export async function rollbackLatestBackup(query: BackupQueryInput = {}) {
+  const latest = await getLatestBackup(query)
+  const restored = await restoreBackup({
+    backupId: latest.backup.id,
+  })
+
+  return {
+    ...restored,
+    matchedBackup: latest.backup,
+  }
+}

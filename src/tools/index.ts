@@ -11,6 +11,7 @@ import {
   readMultipleFilesTool,
   replaceInFileTool,
   restoreBackupTool,
+  rollbackLatestTool,
   searchInFilesTool,
   writeFileTool,
 } from './files'
@@ -27,6 +28,7 @@ const tools = [
   gitDiffTool,
   listBackupsTool,
   getLatestBackupTool,
+  rollbackLatestTool,
   writeFileTool,
   replaceInFileTool,
   applyFileEditsTool,

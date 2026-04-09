@@ -1,6 +1,7 @@
 export { applyFileEditsTool } from './apply-file-edits'
 export { getLatestBackupTool } from './get-latest-backup'
 export { listBackupsTool } from './list-backups'
+export { rollbackLatestTool } from './rollback-latest'
 export { restoreBackupTool } from './restore-backup'
 export { deleteFileTool } from './delete-file'
 export { listFilesTool } from './list-files'
