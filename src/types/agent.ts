@@ -6,6 +6,15 @@ import type {
 
 export type AgentRunInput = string
 
+export interface AgentRunOptions {
+  onTrace?: (message: string) => void
+}
+
+export interface AgentSession {
+  runTurn: (input: AgentRunInput) => Promise<string>
+  reset: () => void
+}
+
 export interface CreateResponseParams {
   messages: ChatCompletionMessageParam[]
   tools: ChatCompletionTool[]

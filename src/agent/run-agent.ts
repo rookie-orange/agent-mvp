@@ -5,10 +5,11 @@ import type {
 } from 'openai/resources/chat/completions'
 import type {
   AgentRunInput,
+  AgentRunOptions,
+  AgentSession,
 } from '../types'
 import { createResponse } from '../llm'
 import { executeToolCalls, toolDefinitions } from '../tools'
-
 
 /**
  * Agent max tool calling steps
@@ -42,11 +43,8 @@ function buildInstructions() {
   ].join('\n')
 }
 
-function createInitialMessages(input: AgentRunInput): ChatCompletionMessageParam[] {
-  return [
-    { role: 'system', content: buildInstructions() },
-    { role: 'user', content: input },
-  ]
+function createBaseMessages(): ChatCompletionMessageParam[] {
+  return [{ role: 'system', content: buildInstructions() }]
 }
 
 function getTextContent(message: ChatCompletionMessage) {
@@ -66,8 +64,14 @@ function toAssistantMessage(message: ChatCompletionMessage): ChatCompletionAssis
   return assistantMessage
 }
 
-function trace(message: string) {
-  console.error(`[agent] ${message}`)
+function createTracer(onTrace?: AgentRunOptions['onTrace']) {
+  if (!onTrace) {
+    return () => {}
+  }
+
+  return (message: string) => {
+    onTrace(`[agent] ${message}`)
+  }
 }
 
 function previewText(text: string, maxLength = 400) {
@@ -86,8 +90,12 @@ function previewToolMessageContent(content: ChatCompletionAssistantMessageParam[
   return previewText(JSON.stringify(content))
 }
 
-export async function runAgent(input: AgentRunInput) {
-  const messages = createInitialMessages(input)
+async function runTurn(
+  messages: ChatCompletionMessageParam[],
+  input: AgentRunInput,
+  trace: ReturnType<typeof createTracer>,
+) {
+  messages.push({ role: 'user', content: input })
 
   trace(`收到用户输入: ${input}`)
 
@@ -138,4 +146,22 @@ export async function runAgent(input: AgentRunInput) {
   }
 
   throw new Error(`超过最大工具调用步数 ${MAX_TOOL_STEPS}，Agent 已停止。`)
+}
+
+export function createAgentSession(options: AgentRunOptions = {}): AgentSession {
+  const trace = createTracer(options.onTrace)
+  let messages = createBaseMessages()
+
+  return {
+    runTurn: async input => await runTurn(messages, input, trace),
+    reset: () => {
+      messages = createBaseMessages()
+    },
+  }
+}
+
+export async function runAgent(input: AgentRunInput, options: AgentRunOptions = {}) {
+  const session = createAgentSession(options)
+
+  return await session.runTurn(input)
 }

@@ -9,7 +9,7 @@
   "keywords": [],
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "node --import tsx src/index.ts",
     "build": "tsdown",
     "watch": "tsdown --watch",
     "start": "node dist/index.js",
