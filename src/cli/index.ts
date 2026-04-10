@@ -22,7 +22,9 @@ const HELP_TEXT = [
   '  /sessions              查看已保存会话',
   '  /load <sessionId>      加载指定会话',
   '  /new [title]           开始一个新会话草稿',
-  '  /clear                 清空当前会话历史',
+  '  /rename <title>        重命名当前会话或草稿标题',
+  '  /delete <sessionId>    删除指定已保存会话',
+  '  /clear                 清空当前会话并删除其持久化记录',
   '  /memory                查看当前项目记忆',
   '  /remember <内容>       追加一条项目记忆',
   '  /forget                清空项目记忆',
@@ -69,6 +71,14 @@ function createEmptyRuntime(memory: string): CliRuntime {
     currentSessionTitle: null,
     pendingSessionTitle: null,
   }
+}
+
+function resetRuntimeSession(runtime: CliRuntime) {
+  const memory = runtime.session.getMemory()
+  runtime.session = createAgentSession({ memory })
+  runtime.currentSessionId = null
+  runtime.currentSessionTitle = null
+  runtime.pendingSessionTitle = null
 }
 
 async function saveCurrentSession(runtime: CliRuntime) {
@@ -132,13 +142,51 @@ async function handleCliInput(runtime: CliRuntime, input: string) {
 
   if (input === '/new' || input.startsWith('/new ')) {
     const title = input === '/new' ? '' : input.slice('/new '.length).trim()
-    const memory = runtime.session.getMemory()
-    runtime.session = createAgentSession({ memory })
-    runtime.currentSessionId = null
-    runtime.currentSessionTitle = null
-    runtime.pendingSessionTitle = title || null
+    resetRuntimeSession(runtime)
+    runtime.pendingSessionTitle = title ? createSessionTitle(title) : null
 
     console.log(title ? `已开始新会话草稿：${title}` : '已开始新会话。')
+    return true
+  }
+
+  if (input.startsWith('/rename ')) {
+    const title = input.slice('/rename '.length).trim()
+
+    if (!title) {
+      console.log('请提供新的会话标题。')
+      return true
+    }
+
+    const nextTitle = createSessionTitle(title)
+
+    if (runtime.currentSessionId) {
+      runtime.currentSessionTitle = nextTitle
+      await saveCurrentSession(runtime)
+      console.log(`已重命名当前会话：${nextTitle}`)
+      return true
+    }
+
+    runtime.pendingSessionTitle = nextTitle
+    console.log(`已设置新会话草稿标题：${nextTitle}`)
+    return true
+  }
+
+  if (input.startsWith('/delete ')) {
+    const sessionId = input.slice('/delete '.length).trim()
+    const session = await loadPersistedSession(sessionId)
+
+    if (!session) {
+      console.log(`未找到会话：${sessionId}`)
+      return true
+    }
+
+    await clearPersistedSession(sessionId)
+
+    if (runtime.currentSessionId === sessionId) {
+      resetRuntimeSession(runtime)
+    }
+
+    console.log(`已删除会话：${sessionId} (${session.title})`)
     return true
   }
 

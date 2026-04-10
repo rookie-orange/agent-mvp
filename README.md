@@ -2,18 +2,31 @@
 
 [中文说明](./README.zh-CN.md)
 
-This is the smallest project designed for studying the evolution process of AI Agents: starting from a simple model call, it gradually develops into a fully-fledged Agent.
+A minimal project for learning how an AI Agent evolves: start with a single model call, then gradually add tools, safety, rollback, persistent memory, and session management.
 
 ## Current Status
 
-The project is currently in the **workspace read/write + git inspection + rollback safety** stage on the [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) branch.
+The project is currently in the **interactive CLI + persistent memory + multi-session management** stage on the [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) branch.
 
 Current capabilities:
 
-- CLI entry for local agent execution
+- interactive CLI entry
 - OpenAI-compatible `chat.completions` integration
-- Multi-step tool-calling loop
-- Built-in tools:
+- multi-step tool-calling loop
+- persistent project memory loaded from `.agent/memory.md`
+- multi-session storage under `.agent/sessions/*.json`
+- manual session loading instead of auto-restoring the previous conversation
+- built-in CLI session commands:
+  - `/sessions`
+  - `/load <sessionId>`
+  - `/new [title]`
+  - `/rename <title>`
+  - `/delete <sessionId>`
+  - `/clear`
+  - `/memory`
+  - `/remember <content>`
+  - `/forget`
+- built-in tools:
   - `getCurrentTime`
   - `listFiles`
   - `readLocalFile`
@@ -30,36 +43,35 @@ Current capabilities:
   - `deleteFile`
   - `restoreBackup`
   - `rollbackLatest`
-- Automatic mutation validation:
+- automatic mutation validation:
   - readback after writes
   - move/delete checks
   - git status + git diff inspection after file changes and restores
-- Automatic backup generation before mutation tools run
+- automatic backup generation before mutation tools run
 - `tsdown` build output for distributable `.js` files
 
 ## Stage Progress
 
 ### Current Stage
 
-#### Stage 3: Workspace Read/Write Tools
+#### Stage 4: Interaction Layer
 
 - Status: In progress on [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - Focus:
-  - let the agent inspect the local workspace before answering
-  - support directory listing, file reading, keyword search, and controlled file modification
-  - add git-aware self-checking after changes
-  - add rollback primitives so file mutations are recoverable
-  - keep the tool loop minimal and easy to understand
+  - move from one-shot CLI usage to a real conversational workflow
+  - persist project memory separately from chat history
+  - manage multiple saved sessions explicitly instead of auto-loading previous history
+  - keep interaction transparent and easy to reason about
 
 ### Planned Next Stage
 
-#### Stage 4: Interaction Layer
+#### Stage 5: Approval And Validation Loop
 
 - Status: Planned, branch not created yet
 - Focus:
-  - improve the interaction model from "single prompt -> final answer" into a clearer collaborative workflow
-  - expose what the agent is doing, why it is doing it, and what can be undone
-  - make the agent safer to use for longer editing sessions
+  - add confirmation boundaries before risky write actions
+  - expose more visible action logs and diffs during long tasks
+  - let the agent run validation steps such as typecheck, tests, or lint after edits
 
 ### Completed Stages
 
@@ -81,14 +93,24 @@ Current capabilities:
   - first built-in tool: `getCurrentTime`
   - project restructuring for easier expansion
 
+#### Stage 3: Workspace Read/Write And Recovery Foundation
+
+- Branch: [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
+- What was completed:
+  - workspace inspection tools
+  - controlled file mutation tools
+  - git-aware self-checking after changes
+  - rollback primitives and automatic backups
+
 ## Branch Map
 
 | Stage | Status | Branch | Link |
 | --- | --- | --- | --- |
 | Stage 1: MVP CLI Agent | Completed | `stage/mvp` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmvp) |
 | Stage 2: Tool-Calling Agent Loop | Completed | `stage/tool-call` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ftool-call) |
-| Stage 3: Workspace Read/Write Tools | Current | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| Stage 4: Interaction Layer | Planned | N/A | Not created yet |
+| Stage 3: Workspace Read/Write And Recovery Foundation | Completed foundation | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| Stage 4: Interaction Layer | Current | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| Stage 5: Approval And Validation Loop | Planned | N/A | Not created yet |
 
 ## Tool Groups
 
@@ -119,9 +141,49 @@ Current capabilities:
 - `restoreBackup`
 - `rollbackLatest`
 
+## CLI Sessions And Memory
+
+Session history and project memory are stored locally under `.agent/` and ignored by Git.
+
+Storage layout:
+
+```txt
+.agent/
+  memory.md
+  sessions/
+    <session-id>.json
+```
+
+Behavior:
+
+- project memory is loaded automatically on startup
+- previous conversations are **not** auto-loaded on startup
+- saved sessions must be loaded explicitly with `/load <sessionId>`
+- the first real message in a fresh draft creates a new saved session automatically
+
+Useful commands:
+
+```txt
+/sessions
+/load <sessionId>
+/new [title]
+/rename <title>
+/delete <sessionId>
+/clear
+/memory
+/remember <content>
+/forget
+```
+
+Command semantics:
+
+- `/clear`: clear the current in-memory conversation and remove its persisted session file if one is loaded
+- `/delete <sessionId>`: remove a specific saved session by id
+- `/rename <title>`: rename the current saved session, or rename the current draft title before it is first persisted
+
 ## Recovery Model
 
-Every mutation tool now creates a backup before changing the workspace.
+Every mutation tool creates a backup before changing the workspace.
 
 This means the agent can:
 
@@ -143,14 +205,16 @@ write/replace/move/delete
 
 ```txt
 src/
-  agent/     # agent loop
-  config/    # env config
-  llm/       # model provider integration
-  tools/     # tool definitions and execution
-    files/   # workspace read/write/recovery tools
-    git/     # git inspection tools
-  types/     # shared types
-  index.ts   # CLI entry
+  agent/        # agent loop and prompts
+  cli/          # interactive CLI
+  config/       # env config
+  llm/          # model provider integration
+  persistence/  # local memory and session storage
+  tools/        # tool definitions and execution
+    files/      # workspace read/write/recovery tools
+    git/        # git inspection tools
+  types/        # shared types
+  index.ts      # CLI entry
 ```
 
 ## Development
@@ -161,10 +225,26 @@ Install dependencies:
 pnpm install
 ```
 
-Run the agent locally:
+Start interactive CLI:
+
+```bash
+pnpm dev
+pnpm chat
+```
+
+Start interactive CLI with the first message:
 
 ```bash
 pnpm dev "What tools are available in this project?"
+```
+
+Typical session workflow:
+
+```txt
+/sessions
+/load session-20260410-abc123
+/new refactor plan
+/remember This project uses tsdown for builds
 ```
 
 Try a rollback scenario:
@@ -185,88 +265,21 @@ pnpm build
 Start the built output:
 
 ```bash
+pnpm start
 pnpm start "List files under src/tools"
 ```
 
 ## Notes
 
-- Stage branches are kept as learning checkpoints so the project history is easier to follow.
-- The current implementation is still CLI-first. The next natural evolution is to improve interaction, not only add more tools.
+- stage branches are kept as learning checkpoints so the evolution path stays easy to inspect
+- the current implementation is still CLI-first
+- the interaction layer now exists, but approval boundaries and post-edit validation are still the next practical upgrades
 
-## Next: Interaction Roadmap
+## Next Practical Roadmap
 
-If the next step is to change the interaction model, this is the most practical route:
+The most useful next steps after the current state are:
 
-### 1. Make Agent Actions Visible
-
-Goal:
-
-- show what the agent is planning to do
-- show which tools were called
-- show what changed and how to undo it
-
-Ideas:
-
-- print a short step log before and after each tool call
-- surface the returned `backupId` in a more obvious way
-- show a concise "changed files / git diff / rollback available" summary after mutations
-
-### 2. Add Confirmation Boundaries
-
-Goal:
-
-- separate safe read operations from risky write operations
-
-Ideas:
-
-- allow reads without confirmation
-- require a confirmation step before mutation tools
-- support a `--yes` mode for power users or scripted runs
-
-### 3. Introduce Session State
-
-Goal:
-
-- make the agent feel less like stateless CLI execution
-
-Ideas:
-
-- keep recent tool results in memory during a session
-- keep the latest backup handy so "undo last change" works naturally
-- show a current task/session summary at the end of each turn
-
-### 4. Upgrade the Output Format
-
-Goal:
-
-- make the agent easier to collaborate with during longer tasks
-
-Ideas:
-
-- split output into sections like `Plan`, `Actions`, `Result`, `Undo`
-- emit machine-friendly JSON in an optional mode
-- add compact and verbose output modes
-
-### 5. Move from CLI to Interactive UI
-
-Goal:
-
-- support longer workflows with better visibility and control
-
-Ideas:
-
-- a simple TUI or web chat
-- tool timeline panel
-- diff viewer
-- backup history / one-click rollback
-- approval UI for writes
-
-### Recommended Order
-
-If you want the highest leverage path, do it in this order:
-
-1. visible step logs + mutation summary
-2. confirmation boundary before writes
-3. session-aware `undo last change`
-4. structured output modes
-5. TUI or web UI
+1. add write confirmations and a `--yes` mode
+2. stream model output and expose clearer action traces
+3. add post-edit validation commands such as typecheck, tests, and lint
+4. summarize long sessions so saved histories stay compact
