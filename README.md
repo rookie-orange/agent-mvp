@@ -54,18 +54,18 @@ Current capabilities:
 
 ### Current Stage
 
-#### Stage 4: Interaction Layer
+#### Stage 6: Multi-Session Interactive CLI
 
 - Status: In progress on [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - Focus:
   - move from one-shot CLI usage to a real conversational workflow
   - persist project memory separately from chat history
   - manage multiple saved sessions explicitly instead of auto-loading previous history
-  - keep interaction transparent and easy to reason about
+  - separate CLI input handling from slash-command implementations
 
 ### Planned Next Stage
 
-#### Stage 5: Approval And Validation Loop
+#### Stage 7: Approval And Validation Loop
 
 - Status: Planned, branch not created yet
 - Focus:
@@ -93,14 +93,41 @@ Current capabilities:
   - first built-in tool: `getCurrentTime`
   - project restructuring for easier expansion
 
-#### Stage 3: Workspace Read/Write And Recovery Foundation
+#### Stage 3: Workspace File IO
+
+- Branch: [`stage/file-io`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ffile-io)
+- What was completed:
+  - directory listing, local file reading, and multi-file reading
+  - keyword search inside the workspace
+  - controlled write / replace / move / delete file operations
+  - initial workspace-aware agent behavior
+
+#### Stage 4: Undo / Redo Safety Layer
+
+- Branch: [`stage/undo-redo`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo)
+- What was completed:
+  - automatic backups before mutation tools
+  - rollback primitives and restore flow
+  - mutation validation with file and git checks
+  - safer file editing workflow
+
+#### Stage 5: Persistent Memory Foundation
+
+- Branch: [`stage/memory`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory)
+- What was completed:
+  - persistent project memory
+  - persisted session history
+  - CLI-level memory commands
+  - memory injection into the agent prompt
+
+#### Stage 6: Multi-Session Interactive CLI
 
 - Branch: [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - What was completed:
-  - workspace inspection tools
-  - controlled file mutation tools
-  - git-aware self-checking after changes
-  - rollback primitives and automatic backups
+  - explicit multi-session management
+  - manual session load instead of auto-resume
+  - slash command registry split from CLI input handling
+  - command-oriented interactive workflow
 
 ## Branch Map
 
@@ -108,9 +135,11 @@ Current capabilities:
 | --- | --- | --- | --- |
 | Stage 1: MVP CLI Agent | Completed | `stage/mvp` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmvp) |
 | Stage 2: Tool-Calling Agent Loop | Completed | `stage/tool-call` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ftool-call) |
-| Stage 3: Workspace Read/Write And Recovery Foundation | Completed foundation | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| Stage 4: Interaction Layer | Current | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| Stage 5: Approval And Validation Loop | Planned | N/A | Not created yet |
+| Stage 3: Workspace File IO | Completed | `stage/file-io` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ffile-io) |
+| Stage 4: Undo / Redo Safety Layer | Completed | `stage/undo-redo` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo) |
+| Stage 5: Persistent Memory Foundation | Completed | `stage/memory` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory) |
+| Stage 6: Multi-Session Interactive CLI | Current | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| Stage 7: Approval And Validation Loop | Planned | N/A | Not created yet |
 
 ## Tool Groups
 

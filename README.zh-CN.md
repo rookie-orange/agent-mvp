@@ -54,18 +54,18 @@
 
 ### 当前阶段
 
-#### 阶段 4：交互层
+#### 阶段 6：多会话交互式 CLI
 
 - 状态：进行中，位于 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - 目标：
   - 把 CLI 从一次性调用演进为真实的连续协作流程
   - 把项目记忆和聊天历史拆开持久化
   - 让多会话由用户显式管理，而不是自动恢复上次历史
-  - 保持交互行为透明、可理解、可控
+  - 把 CLI 输入层和 slash commands 实现解耦
 
 ### 下一阶段规划
 
-#### 阶段 5：确认与验证闭环
+#### 阶段 7：确认与验证闭环
 
 - 状态：规划中，暂未创建分支
 - 目标：
@@ -93,14 +93,41 @@
   - 第一个内置工具：`getCurrentTime`
   - 为后续扩展重构项目结构
 
-#### 阶段 3：工作区读写与恢复基础层
+#### 阶段 3：工作区 File IO
+
+- 分支：[`stage/file-io`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ffile-io)
+- 已完成内容：
+  - 目录列举、本地文件读取、多文件读取
+  - 工作区关键词搜索
+  - 受控的写入 / 替换 / 移动 / 删除文件能力
+  - 初步具备面向工作区的 Agent 行为
+
+#### 阶段 4：Undo / Redo 安全层
+
+- 分支：[`stage/undo-redo`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo)
+- 已完成内容：
+  - 写操作前自动备份
+  - 回滚原语与恢复流程
+  - 带文件与 Git 检查的修改校验
+  - 更安全的文件编辑闭环
+
+#### 阶段 5：持久化记忆基础层
+
+- 分支：[`stage/memory`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory)
+- 已完成内容：
+  - 项目级持久化记忆
+  - 会话历史持久化
+  - CLI 级记忆命令
+  - 将 memory 注入 Agent prompt
+
+#### 阶段 6：多会话交互式 CLI
 
 - 分支：[`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - 已完成内容：
-  - 工作区检查工具
-  - 受控文件修改工具
-  - 修改后的 Git 自检
-  - 自动备份与回滚原语
+  - 显式的多会话管理
+  - 手动加载会话而非自动恢复
+  - 将 slash command 注册表从 CLI 输入层中拆出
+  - 命令式的交互工作流
 
 ## 分支导航
 
@@ -108,9 +135,11 @@
 | --- | --- | --- | --- |
 | 阶段 1：MVP CLI Agent | 已完成 | `stage/mvp` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmvp) |
 | 阶段 2：Tool-Calling Agent Loop | 已完成 | `stage/tool-call` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ftool-call) |
-| 阶段 3：工作区读写与恢复基础层 | 基础能力已完成 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| 阶段 4：交互层 | 当前阶段 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| 阶段 5：确认与验证闭环 | 规划中 | N/A | 尚未创建 |
+| 阶段 3：工作区 File IO | 已完成 | `stage/file-io` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ffile-io) |
+| 阶段 4：Undo / Redo 安全层 | 已完成 | `stage/undo-redo` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo) |
+| 阶段 5：持久化记忆基础层 | 已完成 | `stage/memory` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory) |
+| 阶段 6：多会话交互式 CLI | 当前阶段 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| 阶段 7：确认与验证闭环 | 规划中 | N/A | 尚未创建 |
 
 ## 工具分组
 
