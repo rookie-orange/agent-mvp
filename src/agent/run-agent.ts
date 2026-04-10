@@ -9,25 +9,13 @@ import type {
   AgentSession,
 } from '../types'
 import { createResponse } from '../llm'
-import { executeToolCalls, toolDefinitions, toolPromptLines } from '../tools'
+import { executeToolCalls, toolDefinitions } from '../tools'
+import { buildAgentInstructions } from './prompt'
 
-/**
- * Agent max tool calling steps
- */
 const MAX_TOOL_STEPS = 10
 
-function buildInstructions() {
-  return [
-    '你是一个正在帮助用户学习 AI Agent 开发的简洁助手。',
-    '回答要直接、准确、结构清晰。',
-    ...toolPromptLines,
-    '在没有实际调用工具之前，不要声称你正在搜索、已经查看了文件、或已经确认了代码内容。',
-    '拿到工具结果后，直接基于工具结果回答。',
-  ].join('\n')
-}
-
 function createBaseMessages(): ChatCompletionMessageParam[] {
-  return [{ role: 'system', content: buildInstructions() }]
+  return [{ role: 'system', content: buildAgentInstructions() }]
 }
 
 function getTextContent(message: ChatCompletionMessage) {
