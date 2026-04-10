@@ -207,6 +207,7 @@ write/replace/move/delete
 src/
   agent/        # agent 循环与提示词
   cli/          # 交互式 CLI
+  commands/     # slash commands 与命令注册表
   config/       # 环境变量配置
   llm/          # 模型调用层
   persistence/  # 本地记忆与会话存储

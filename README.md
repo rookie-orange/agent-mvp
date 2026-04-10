@@ -207,6 +207,7 @@ write/replace/move/delete
 src/
   agent/        # agent loop and prompts
   cli/          # interactive CLI
+  commands/     # slash commands and registry
   config/       # env config
   llm/          # model provider integration
   persistence/  # local memory and session storage

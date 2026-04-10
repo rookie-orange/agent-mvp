@@ -1,238 +1,33 @@
-import type { PersistedSessionSummary } from '../persistence/session-store'
-import type { AgentSession } from '../types'
+import type { CliRuntime } from './runtime'
 import process from 'node:process'
 import { createInterface } from 'node:readline/promises'
-import { createAgentSession } from '../agent'
+import { executeCommand } from '../commands'
 import {
-  appendPersistedMemory,
-  clearPersistedMemory,
-  clearPersistedSession,
-  createSessionId,
-  createSessionTitle,
   getMemoryFilePath,
   listPersistedSessions,
   loadPersistedMemory,
-  loadPersistedSession,
-  savePersistedSession,
 } from '../persistence'
-
-const HELP_TEXT = [
-  '可用命令：',
-  '  /help                  显示帮助',
-  '  /sessions              查看已保存会话',
-  '  /load <sessionId>      加载指定会话',
-  '  /new [title]           开始一个新会话草稿',
-  '  /rename <title>        重命名当前会话或草稿标题',
-  '  /delete <sessionId>    删除指定已保存会话',
-  '  /clear                 清空当前会话并删除其持久化记录',
-  '  /memory                查看当前项目记忆',
-  '  /remember <内容>       追加一条项目记忆',
-  '  /forget                清空项目记忆',
-  '  /exit                  退出交互模式',
-  '  /quit                  退出交互模式',
-].join('\n')
-
-interface CliRuntime {
-  session: AgentSession
-  currentSessionId: string | null
-  currentSessionTitle: string | null
-  pendingSessionTitle: string | null
-}
-
-function isExitCommand(input: string) {
-  return input === '/exit' || input === '/quit'
-}
-
-function formatSessionUpdatedAt(updatedAt: string) {
-  const date = new Date(updatedAt)
-  return Number.isNaN(date.getTime())
-    ? updatedAt
-    : date.toLocaleString('zh-CN', { hour12: false })
-}
-
-function printSessionList(sessions: PersistedSessionSummary[], currentSessionId: string | null) {
-  if (sessions.length === 0) {
-    console.log('当前没有已保存会话。')
-    return
-  }
-
-  console.log('已保存会话：')
-
-  for (const session of sessions) {
-    const currentMark = session.id === currentSessionId ? '*' : ' '
-    console.log(`${currentMark} ${session.id}  ${session.title}  ${session.messageCount} 条消息  ${formatSessionUpdatedAt(session.updatedAt)}`)
-  }
-}
-
-function createEmptyRuntime(memory: string): CliRuntime {
-  return {
-    session: createAgentSession({ memory }),
-    currentSessionId: null,
-    currentSessionTitle: null,
-    pendingSessionTitle: null,
-  }
-}
-
-function resetRuntimeSession(runtime: CliRuntime) {
-  const memory = runtime.session.getMemory()
-  runtime.session = createAgentSession({ memory })
-  runtime.currentSessionId = null
-  runtime.currentSessionTitle = null
-  runtime.pendingSessionTitle = null
-}
-
-async function saveCurrentSession(runtime: CliRuntime) {
-  if (!runtime.currentSessionId || !runtime.currentSessionTitle) {
-    return
-  }
-
-  await savePersistedSession({
-    id: runtime.currentSessionId,
-    title: runtime.currentSessionTitle,
-    conversationMessages: runtime.session.getConversationMessages(),
-  })
-}
+import { createCliRuntime, runAgentTurn } from './runtime'
 
 async function runUserInput(runtime: CliRuntime, input: string) {
-  const output = await runtime.session.runTurn(input)
+  const isNewSession = !runtime.currentSessionId
+  const output = await runAgentTurn(runtime, input)
 
-  if (!runtime.currentSessionId) {
-    runtime.currentSessionId = createSessionId()
-    runtime.currentSessionTitle = runtime.pendingSessionTitle || createSessionTitle(input)
-    runtime.pendingSessionTitle = null
+  if (isNewSession && runtime.currentSessionId && runtime.currentSessionTitle) {
     console.log(`已创建会话：${runtime.currentSessionId} (${runtime.currentSessionTitle})`)
   }
 
-  await saveCurrentSession(runtime)
   console.log(`\n${output}\n`)
 }
 
 async function handleCliInput(runtime: CliRuntime, input: string) {
-  if (input === '/help') {
-    console.log(HELP_TEXT)
-    return true
-  }
+  const commandResult = await executeCommand(input, {
+    runtime,
+    write: message => console.log(message),
+  })
 
-  if (input === '/sessions') {
-    const sessions = await listPersistedSessions()
-    printSessionList(sessions, runtime.currentSessionId)
-    return true
-  }
-
-  if (input.startsWith('/load ')) {
-    const sessionId = input.slice('/load '.length).trim()
-    const persistedSession = await loadPersistedSession(sessionId)
-
-    if (!persistedSession) {
-      console.log(`未找到会话：${sessionId}`)
-      return true
-    }
-
-    runtime.session = createAgentSession({
-      conversationMessages: persistedSession.conversationMessages,
-      memory: runtime.session.getMemory(),
-    })
-    runtime.currentSessionId = persistedSession.id
-    runtime.currentSessionTitle = persistedSession.title
-    runtime.pendingSessionTitle = null
-
-    console.log(`已加载会话：${persistedSession.id} (${persistedSession.title})，共 ${persistedSession.conversationMessages.length} 条消息。`)
-    return true
-  }
-
-  if (input === '/new' || input.startsWith('/new ')) {
-    const title = input === '/new' ? '' : input.slice('/new '.length).trim()
-    resetRuntimeSession(runtime)
-    runtime.pendingSessionTitle = title ? createSessionTitle(title) : null
-
-    console.log(title ? `已开始新会话草稿：${title}` : '已开始新会话。')
-    return true
-  }
-
-  if (input.startsWith('/rename ')) {
-    const title = input.slice('/rename '.length).trim()
-
-    if (!title) {
-      console.log('请提供新的会话标题。')
-      return true
-    }
-
-    const nextTitle = createSessionTitle(title)
-
-    if (runtime.currentSessionId) {
-      runtime.currentSessionTitle = nextTitle
-      await saveCurrentSession(runtime)
-      console.log(`已重命名当前会话：${nextTitle}`)
-      return true
-    }
-
-    runtime.pendingSessionTitle = nextTitle
-    console.log(`已设置新会话草稿标题：${nextTitle}`)
-    return true
-  }
-
-  if (input.startsWith('/delete ')) {
-    const sessionId = input.slice('/delete '.length).trim()
-    const session = await loadPersistedSession(sessionId)
-
-    if (!session) {
-      console.log(`未找到会话：${sessionId}`)
-      return true
-    }
-
-    await clearPersistedSession(sessionId)
-
-    if (runtime.currentSessionId === sessionId) {
-      resetRuntimeSession(runtime)
-    }
-
-    console.log(`已删除会话：${sessionId} (${session.title})`)
-    return true
-  }
-
-  if (input === '/clear') {
-    runtime.session.reset()
-
-    if (runtime.currentSessionId) {
-      await clearPersistedSession(runtime.currentSessionId)
-    }
-
-    runtime.currentSessionId = null
-    runtime.currentSessionTitle = null
-    runtime.pendingSessionTitle = null
-    console.log('会话已清空。')
-    return true
-  }
-
-  if (input === '/memory') {
-    const memory = runtime.session.getMemory()
-
-    if (!memory) {
-      console.log(`当前没有项目记忆。可使用 /remember 添加，文件位置：${getMemoryFilePath()}`)
-      return true
-    }
-
-    console.log(`当前项目记忆（${getMemoryFilePath()}）：\n${memory}`)
-    return true
-  }
-
-  if (input.startsWith('/remember ')) {
-    const note = input.slice('/remember '.length).trim()
-    const memory = await appendPersistedMemory(note)
-    runtime.session.setMemory(memory)
-    console.log(`已写入项目记忆：${getMemoryFilePath()}`)
-    return true
-  }
-
-  if (input === '/forget') {
-    await clearPersistedMemory()
-    runtime.session.setMemory('')
-    console.log('项目记忆已清空。')
-    return true
-  }
-
-  if (isExitCommand(input)) {
-    return false
+  if (commandResult) {
+    return commandResult.shouldContinue
   }
 
   try {
@@ -251,7 +46,7 @@ export async function startCli(initialInput?: string) {
     loadPersistedMemory(),
     listPersistedSessions(),
   ])
-  const runtime = createEmptyRuntime(memory)
+  const runtime = createCliRuntime(memory)
   const readline = createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -266,7 +61,7 @@ export async function startCli(initialInput?: string) {
     console.log(`已发现 ${sessions.length} 个历史会话。使用 /sessions 查看，/load <sessionId> 加载。`)
   }
 
-  console.log('进入交互模式。输入 /help 查看命令，/exit 退出。')
+  console.log('输入 /help 查看命令，/exit 退出。')
 
   try {
     if (initialInput) {
