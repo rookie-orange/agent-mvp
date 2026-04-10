@@ -1,44 +1,148 @@
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
+import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import {
+  ensureDir,
   getAgentDataDir,
+  listDirNamesIfExists,
   readJsonFileIfExists,
   removeFileIfExists,
   writeJsonFile,
 } from './shared'
 
-interface PersistedSessionData {
+export interface PersistedSessionData {
   version: 1
+  id: string
+  title: string
   updatedAt: string
   conversationMessages: ChatCompletionMessageParam[]
 }
 
-function getSessionFilePath() {
-  return resolve(getAgentDataDir(), 'session.json')
+export interface PersistedSessionSummary {
+  id: string
+  title: string
+  updatedAt: string
+  messageCount: number
 }
 
-export async function loadPersistedSession() {
-  const data = await readJsonFileIfExists<PersistedSessionData>(getSessionFilePath())
+interface SavePersistedSessionParams {
+  id: string
+  title: string
+  conversationMessages: ChatCompletionMessageParam[]
+}
 
-  if (!data || !Array.isArray(data.conversationMessages)) {
-    return []
+const REGEX_SESSION_ID = /^[a-z0-9-]+$/
+
+function getSessionsDirPath() {
+  return resolve(getAgentDataDir(), 'sessions')
+}
+
+function normalizeSessionId(sessionId: string) {
+  const normalized = sessionId.trim()
+
+  if (!normalized) {
+    throw new Error('会话 ID 不能为空。')
   }
 
-  return data.conversationMessages
+  if (!REGEX_SESSION_ID.test(normalized)) {
+    throw new Error('会话 ID 格式非法。')
+  }
+
+  return normalized
 }
 
-export async function savePersistedSession(conversationMessages: ChatCompletionMessageParam[]) {
+function getSessionFilePath(sessionId: string) {
+  return resolve(getSessionsDirPath(), `${normalizeSessionId(sessionId)}.json`)
+}
+
+function toSessionSummary(data: PersistedSessionData): PersistedSessionSummary {
+  return {
+    id: data.id,
+    title: data.title,
+    updatedAt: data.updatedAt,
+    messageCount: data.conversationMessages.length,
+  }
+}
+
+export function createSessionId() {
+  const now = new Date()
+  const parts = [
+    now.getFullYear().toString(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0'),
+  ]
+
+  return `session-${parts.join('')}-${randomUUID().slice(0, 6)}`
+}
+
+export function createSessionTitle(input?: string) {
+  const normalized = input?.replace(/\s+/g, ' ').trim()
+
+  if (!normalized) {
+    return '新会话'
+  }
+
+  return normalized.length > 24
+    ? `${normalized.slice(0, 24)}...`
+    : normalized
+}
+
+export async function listPersistedSessions() {
+  const fileNames = await listDirNamesIfExists(getSessionsDirPath())
+  const sessions = await Promise.all(
+    fileNames
+      .filter(fileName => fileName.endsWith('.json'))
+      .map(async (fileName) => {
+        const sessionId = fileName.slice(0, -'.json'.length)
+        return await loadPersistedSession(sessionId)
+      }),
+  )
+
+  return sessions
+    .filter((session): session is PersistedSessionData => session !== null)
+    .map(toSessionSummary)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
+export async function loadPersistedSession(sessionId: string) {
+  const data = await readJsonFileIfExists<PersistedSessionData>(getSessionFilePath(sessionId))
+
+  if (!data || !Array.isArray(data.conversationMessages)) {
+    return null
+  }
+
+  return {
+    version: 1,
+    id: normalizeSessionId(data.id || sessionId),
+    title: data.title?.trim() || createSessionTitle(),
+    updatedAt: data.updatedAt,
+    conversationMessages: data.conversationMessages,
+  } satisfies PersistedSessionData
+}
+
+export async function savePersistedSession({
+  id,
+  title,
+  conversationMessages,
+}: SavePersistedSessionParams) {
+  await ensureDir(getSessionsDirPath())
+
   const data: PersistedSessionData = {
     version: 1,
+    id: normalizeSessionId(id),
+    title: title.trim() || createSessionTitle(),
     updatedAt: new Date().toISOString(),
     conversationMessages,
   }
 
-  await writeJsonFile(getSessionFilePath(), data)
+  await writeJsonFile(getSessionFilePath(data.id), data)
 }
 
-export async function clearPersistedSession() {
-  await removeFileIfExists(getSessionFilePath())
+export async function clearPersistedSession(sessionId: string) {
+  await removeFileIfExists(getSessionFilePath(sessionId))
 }
 
-export { getSessionFilePath }
+export { getSessionFilePath, getSessionsDirPath }

@@ -1,5 +1,5 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import process from 'node:process'
 
 const AGENT_DATA_DIRNAME = '.agent'
@@ -8,8 +8,8 @@ function getAgentDataDir() {
   return resolve(process.cwd(), AGENT_DATA_DIRNAME)
 }
 
-async function ensureAgentDataDir() {
-  await mkdir(getAgentDataDir(), { recursive: true })
+async function ensureDir(dirPath: string) {
+  await mkdir(dirPath, { recursive: true })
 }
 
 async function readTextFileIfExists(filePath: string) {
@@ -26,8 +26,21 @@ async function readTextFileIfExists(filePath: string) {
 }
 
 async function writeTextFile(filePath: string, content: string) {
-  await ensureAgentDataDir()
+  await ensureDir(dirname(filePath))
   await writeFile(filePath, content, 'utf8')
+}
+
+async function listDirNamesIfExists(dirPath: string) {
+  try {
+    return await readdir(dirPath)
+  }
+  catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return []
+    }
+
+    throw error
+  }
 }
 
 async function readJsonFileIfExists<T>(filePath: string) {
@@ -58,7 +71,9 @@ async function removeFileIfExists(filePath: string) {
 }
 
 export {
+  ensureDir,
   getAgentDataDir,
+  listDirNamesIfExists,
   readJsonFileIfExists,
   readTextFileIfExists,
   removeFileIfExists,

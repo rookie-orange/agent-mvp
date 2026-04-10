@@ -1,3 +1,4 @@
+import type { PersistedSessionSummary } from '../persistence/session-store'
 import type { AgentSession } from '../types'
 import process from 'node:process'
 import { createInterface } from 'node:readline/promises'
@@ -6,48 +7,157 @@ import {
   appendPersistedMemory,
   clearPersistedMemory,
   clearPersistedSession,
+  createSessionId,
+  createSessionTitle,
   getMemoryFilePath,
+  listPersistedSessions,
   loadPersistedMemory,
   loadPersistedSession,
   savePersistedSession,
 } from '../persistence'
 
 const HELP_TEXT = [
-  'Available commands:',
-  '  /help                  Show help and available commands',
-  '  /clear                 Clear current session history',
-  '  /memory                View current project memory',
-  '  /remember <content>    Append a project memory',
-  '  /forget                Clear project memory',
-  '  /exit                  Exit',
-  '  /quit                  Exit',
+  '可用命令：',
+  '  /help                  显示帮助',
+  '  /sessions              查看已保存会话',
+  '  /load <sessionId>      加载指定会话',
+  '  /new [title]           开始一个新会话草稿',
+  '  /clear                 清空当前会话历史',
+  '  /memory                查看当前项目记忆',
+  '  /remember <内容>       追加一条项目记忆',
+  '  /forget                清空项目记忆',
+  '  /exit                  退出交互模式',
+  '  /quit                  退出交互模式',
 ].join('\n')
+
+interface CliRuntime {
+  session: AgentSession
+  currentSessionId: string | null
+  currentSessionTitle: string | null
+  pendingSessionTitle: string | null
+}
 
 function isExitCommand(input: string) {
   return input === '/exit' || input === '/quit'
 }
 
-async function runUserInput(session: AgentSession, input: string) {
-  const output = await session.runTurn(input)
-  await savePersistedSession(session.getConversationMessages())
+function formatSessionUpdatedAt(updatedAt: string) {
+  const date = new Date(updatedAt)
+  return Number.isNaN(date.getTime())
+    ? updatedAt
+    : date.toLocaleString('zh-CN', { hour12: false })
+}
+
+function printSessionList(sessions: PersistedSessionSummary[], currentSessionId: string | null) {
+  if (sessions.length === 0) {
+    console.log('当前没有已保存会话。')
+    return
+  }
+
+  console.log('已保存会话：')
+
+  for (const session of sessions) {
+    const currentMark = session.id === currentSessionId ? '*' : ' '
+    console.log(`${currentMark} ${session.id}  ${session.title}  ${session.messageCount} 条消息  ${formatSessionUpdatedAt(session.updatedAt)}`)
+  }
+}
+
+function createEmptyRuntime(memory: string): CliRuntime {
+  return {
+    session: createAgentSession({ memory }),
+    currentSessionId: null,
+    currentSessionTitle: null,
+    pendingSessionTitle: null,
+  }
+}
+
+async function saveCurrentSession(runtime: CliRuntime) {
+  if (!runtime.currentSessionId || !runtime.currentSessionTitle) {
+    return
+  }
+
+  await savePersistedSession({
+    id: runtime.currentSessionId,
+    title: runtime.currentSessionTitle,
+    conversationMessages: runtime.session.getConversationMessages(),
+  })
+}
+
+async function runUserInput(runtime: CliRuntime, input: string) {
+  const output = await runtime.session.runTurn(input)
+
+  if (!runtime.currentSessionId) {
+    runtime.currentSessionId = createSessionId()
+    runtime.currentSessionTitle = runtime.pendingSessionTitle || createSessionTitle(input)
+    runtime.pendingSessionTitle = null
+    console.log(`已创建会话：${runtime.currentSessionId} (${runtime.currentSessionTitle})`)
+  }
+
+  await saveCurrentSession(runtime)
   console.log(`\n${output}\n`)
 }
 
-async function handleCliInput(session: AgentSession, input: string) {
+async function handleCliInput(runtime: CliRuntime, input: string) {
   if (input === '/help') {
     console.log(HELP_TEXT)
     return true
   }
 
+  if (input === '/sessions') {
+    const sessions = await listPersistedSessions()
+    printSessionList(sessions, runtime.currentSessionId)
+    return true
+  }
+
+  if (input.startsWith('/load ')) {
+    const sessionId = input.slice('/load '.length).trim()
+    const persistedSession = await loadPersistedSession(sessionId)
+
+    if (!persistedSession) {
+      console.log(`未找到会话：${sessionId}`)
+      return true
+    }
+
+    runtime.session = createAgentSession({
+      conversationMessages: persistedSession.conversationMessages,
+      memory: runtime.session.getMemory(),
+    })
+    runtime.currentSessionId = persistedSession.id
+    runtime.currentSessionTitle = persistedSession.title
+    runtime.pendingSessionTitle = null
+
+    console.log(`已加载会话：${persistedSession.id} (${persistedSession.title})，共 ${persistedSession.conversationMessages.length} 条消息。`)
+    return true
+  }
+
+  if (input === '/new' || input.startsWith('/new ')) {
+    const title = input === '/new' ? '' : input.slice('/new '.length).trim()
+    const memory = runtime.session.getMemory()
+    runtime.session = createAgentSession({ memory })
+    runtime.currentSessionId = null
+    runtime.currentSessionTitle = null
+    runtime.pendingSessionTitle = title || null
+
+    console.log(title ? `已开始新会话草稿：${title}` : '已开始新会话。')
+    return true
+  }
+
   if (input === '/clear') {
-    session.reset()
-    await clearPersistedSession()
+    runtime.session.reset()
+
+    if (runtime.currentSessionId) {
+      await clearPersistedSession(runtime.currentSessionId)
+    }
+
+    runtime.currentSessionId = null
+    runtime.currentSessionTitle = null
+    runtime.pendingSessionTitle = null
     console.log('会话已清空。')
     return true
   }
 
   if (input === '/memory') {
-    const memory = session.getMemory()
+    const memory = runtime.session.getMemory()
 
     if (!memory) {
       console.log(`当前没有项目记忆。可使用 /remember 添加，文件位置：${getMemoryFilePath()}`)
@@ -61,14 +171,14 @@ async function handleCliInput(session: AgentSession, input: string) {
   if (input.startsWith('/remember ')) {
     const note = input.slice('/remember '.length).trim()
     const memory = await appendPersistedMemory(note)
-    session.setMemory(memory)
+    runtime.session.setMemory(memory)
     console.log(`已写入项目记忆：${getMemoryFilePath()}`)
     return true
   }
 
   if (input === '/forget') {
     await clearPersistedMemory()
-    session.setMemory('')
+    runtime.session.setMemory('')
     console.log('项目记忆已清空。')
     return true
   }
@@ -78,7 +188,7 @@ async function handleCliInput(session: AgentSession, input: string) {
   }
 
   try {
-    await runUserInput(session, input)
+    await runUserInput(runtime, input)
   }
   catch (error: unknown) {
     const message = error instanceof Error ? error.message : '未知错误'
@@ -89,34 +199,31 @@ async function handleCliInput(session: AgentSession, input: string) {
 }
 
 export async function startCli(initialInput?: string) {
-  const [conversationMessages, memory] = await Promise.all([
-    loadPersistedSession(),
+  const [memory, sessions] = await Promise.all([
     loadPersistedMemory(),
+    listPersistedSessions(),
   ])
-  const session = createAgentSession({
-    conversationMessages,
-    memory,
-  })
+  const runtime = createEmptyRuntime(memory)
   const readline = createInterface({
     input: process.stdin,
     output: process.stdout,
     terminal: true,
   })
 
-  if (conversationMessages.length > 0) {
-    console.log(`已恢复上次会话，共 ${conversationMessages.length} 条消息。`)
-  }
-
   if (memory) {
     console.log(`已加载项目记忆：${getMemoryFilePath()}`)
   }
 
-  console.log('Enter /help to view commands, /exit to exit.')
+  if (sessions.length > 0) {
+    console.log(`已发现 ${sessions.length} 个历史会话。使用 /sessions 查看，/load <sessionId> 加载。`)
+  }
+
+  console.log('进入交互模式。输入 /help 查看命令，/exit 退出。')
 
   try {
     if (initialInput) {
       console.log(`agent> ${initialInput}`)
-      const shouldContinue = await handleCliInput(session, initialInput)
+      const shouldContinue = await handleCliInput(runtime, initialInput)
 
       if (!shouldContinue) {
         return
@@ -139,7 +246,7 @@ export async function startCli(initialInput?: string) {
         continue
       }
 
-      const shouldContinue = await handleCliInput(session, input)
+      const shouldContinue = await handleCliInput(runtime, input)
 
       if (!shouldContinue) {
         break
