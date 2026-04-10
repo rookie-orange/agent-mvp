@@ -3,7 +3,6 @@ import {
   applyFileEditsTool,
   buildMutationValidation,
   deleteFileTool,
-  fileToolPromptLines,
   getLatestBackupTool,
   listBackupsTool,
   listFilesTool,
@@ -17,7 +16,9 @@ import {
   writeFileTool,
 } from './files'
 import { getCurrentTimeTool } from './get-current-time'
-import { gitDiffTool, gitStatusTool, gitToolPromptLines } from './git'
+import { gitDiffTool, gitStatusTool } from './git'
+
+export { toolPromptLines } from './prompt'
 
 const tools = [
   getCurrentTimeTool,
@@ -41,12 +42,6 @@ const tools = [
 const toolRegistry = new Map(
   tools.map(tool => [tool.definition.function.name, tool]),
 )
-
-export const toolPromptLines = [
-  '当用户的问题需要获取当前时间、日期或星期时，调用可用工具，不要猜测。',
-  ...fileToolPromptLines,
-  ...gitToolPromptLines,
-]
 
 function parseToolArguments(rawArguments: string) {
   if (!rawArguments.trim()) {
