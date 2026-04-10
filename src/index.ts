@@ -3,9 +3,10 @@ import { startCli } from './cli'
 
 function printUsage() {
   console.log([
-    'Usage:',
-    '  pnpm dev                  Start',
-    '  pnpm dev "hello"          Start the first message',
+    '用法：',
+    '  pnpm dev                  进入交互模式',
+    '  pnpm chat                 进入交互模式',
+    '  pnpm dev "你好"           进入交互模式并发送首条消息',
   ].join('\n'))
 }
 

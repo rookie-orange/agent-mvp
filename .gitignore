@@ -129,6 +129,9 @@ dist
 # pnpm
 .pnpm-store
 
+# Local agent state
+.agent/
+
 # yarn v3
 .pnp.*
 .yarn/*

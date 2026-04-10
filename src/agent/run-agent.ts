@@ -14,8 +14,8 @@ import { buildAgentInstructions } from './prompt'
 
 const MAX_TOOL_STEPS = 10
 
-function createBaseMessages(): ChatCompletionMessageParam[] {
-  return [{ role: 'system', content: buildAgentInstructions() }]
+function createBaseMessages(memory?: string): ChatCompletionMessageParam[] {
+  return [{ role: 'system', content: buildAgentInstructions(memory) }]
 }
 
 function getTextContent(message: ChatCompletionMessage) {
@@ -62,11 +62,16 @@ function previewToolMessageContent(content: ChatCompletionAssistantMessageParam[
 }
 
 async function runTurn(
-  messages: ChatCompletionMessageParam[],
+  conversationMessages: ChatCompletionMessageParam[],
   input: AgentRunInput,
   trace: ReturnType<typeof createTracer>,
+  memory?: string,
 ) {
-  messages.push({ role: 'user', content: input })
+  const messages = [
+    ...createBaseMessages(memory),
+    ...conversationMessages,
+    { role: 'user', content: input } satisfies ChatCompletionMessageParam,
+  ]
 
   trace(`收到用户输入: ${input}`)
 
@@ -97,7 +102,10 @@ async function runTurn(
       }
 
       trace(`最终回答: ${finalAnswer}`)
-      return finalAnswer
+      return {
+        finalAnswer,
+        conversationMessages: messages.slice(1),
+      }
     }
 
     trace(`模型请求调用 ${toolCalls.length} 个工具`)
@@ -121,13 +129,23 @@ async function runTurn(
 
 export function createAgentSession(options: AgentRunOptions = {}): AgentSession {
   const trace = createTracer(options.onTrace)
-  let messages = createBaseMessages()
+  let conversationMessages = options.conversationMessages?.slice() || []
+  let memory = options.memory?.trim() || ''
 
   return {
-    runTurn: async input => await runTurn(messages, input, trace),
-    reset: () => {
-      messages = createBaseMessages()
+    runTurn: async (input) => {
+      const result = await runTurn(conversationMessages, input, trace, memory)
+      conversationMessages = result.conversationMessages
+      return result.finalAnswer
     },
+    reset: () => {
+      conversationMessages = []
+    },
+    setMemory: (nextMemory) => {
+      memory = nextMemory.trim()
+    },
+    getMemory: () => memory,
+    getConversationMessages: () => conversationMessages.slice(),
   }
 }
 

@@ -10,9 +10,23 @@ const agentPromptSuffixLines = [
   '拿到工具结果后，直接基于工具结果回答。',
 ]
 
-export function buildAgentInstructions() {
+function buildMemoryPromptLines(memory?: string) {
+  const trimmedMemory = memory?.trim()
+
+  if (!trimmedMemory) {
+    return []
+  }
+
+  return [
+    '以下是当前项目的持久化记忆。仅在与用户当前请求相关时使用这些信息：',
+    trimmedMemory,
+  ]
+}
+
+export function buildAgentInstructions(memory?: string) {
   return [
     ...agentPromptLines,
+    ...buildMemoryPromptLines(memory),
     ...toolPromptLines,
     ...agentPromptSuffixLines,
   ].join('\n')

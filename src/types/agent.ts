@@ -8,11 +8,16 @@ export type AgentRunInput = string
 
 export interface AgentRunOptions {
   onTrace?: (message: string) => void
+  conversationMessages?: ChatCompletionMessageParam[]
+  memory?: string
 }
 
 export interface AgentSession {
   runTurn: (input: AgentRunInput) => Promise<string>
   reset: () => void
+  setMemory: (memory: string) => void
+  getMemory: () => string
+  getConversationMessages: () => ChatCompletionMessageParam[]
 }
 
 export interface CreateResponseParams {
