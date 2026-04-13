@@ -1,5 +1,5 @@
 import type { PersistedSessionData } from '../persistence/session-store'
-import type { AgentSession } from '../types'
+import type { AgentRunOptions, AgentSession, ToolExecutionContext } from '../types'
 import { createAgentSession } from '../agent'
 import {
   clearPersistedSession,
@@ -13,20 +13,54 @@ export interface CliRuntime {
   currentSessionId: string | null
   currentSessionTitle: string | null
   pendingSessionTitle: string | null
+  requestApproval?: ToolExecutionContext['requestApproval']
 }
 
-export function createCliRuntime(memory: string): CliRuntime {
+interface CreateCliRuntimeOptions {
+  requestApproval?: ToolExecutionContext['requestApproval']
+}
+
+function createRuntimeAgentSession(options: {
+  memory: string
+  conversationMessages?: AgentRunOptions['conversationMessages']
+  requestApproval?: ToolExecutionContext['requestApproval']
+}) {
+  const sessionOptions: AgentRunOptions = {
+    memory: options.memory,
+  }
+
+  if (options.conversationMessages) {
+    sessionOptions.conversationMessages = options.conversationMessages
+  }
+
+  if (options.requestApproval) {
+    sessionOptions.toolContext = {
+      requestApproval: options.requestApproval,
+    }
+  }
+
+  return createAgentSession(sessionOptions)
+}
+
+export function createCliRuntime(memory: string, options: CreateCliRuntimeOptions = {}): CliRuntime {
   return {
-    session: createAgentSession({ memory }),
+    session: createRuntimeAgentSession({
+      memory,
+      requestApproval: options.requestApproval,
+    }),
     currentSessionId: null,
     currentSessionTitle: null,
     pendingSessionTitle: null,
+    requestApproval: options.requestApproval,
   }
 }
 
 export function resetRuntimeSession(runtime: CliRuntime) {
   const memory = runtime.session.getMemory()
-  runtime.session = createAgentSession({ memory })
+  runtime.session = createRuntimeAgentSession({
+    memory,
+    requestApproval: runtime.requestApproval,
+  })
   runtime.currentSessionId = null
   runtime.currentSessionTitle = null
   runtime.pendingSessionTitle = null
@@ -38,9 +72,10 @@ export function startDraftSession(runtime: CliRuntime, title?: string) {
 }
 
 export function loadSessionIntoRuntime(runtime: CliRuntime, session: PersistedSessionData) {
-  runtime.session = createAgentSession({
-    conversationMessages: session.conversationMessages,
+  runtime.session = createRuntimeAgentSession({
     memory: runtime.session.getMemory(),
+    conversationMessages: session.conversationMessages,
+    requestApproval: runtime.requestApproval,
   })
   runtime.currentSessionId = session.id
   runtime.currentSessionTitle = session.title

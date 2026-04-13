@@ -1,3 +1,4 @@
+import type { ToolApprovalRequest } from '../types'
 import type { CliRuntime } from './runtime'
 import process from 'node:process'
 import { createInterface } from 'node:readline/promises'
@@ -8,6 +9,39 @@ import {
   loadPersistedMemory,
 } from '../persistence'
 import { createCliRuntime, runRuntimeTurn } from './runtime'
+
+async function confirmApproval(
+  readline: ReturnType<typeof createInterface>,
+  request: ToolApprovalRequest,
+) {
+  console.log(`\n[审批] ${request.toolName}`)
+  console.log(request.summary)
+
+  for (const detail of request.details || []) {
+    console.log(`- ${detail}`)
+  }
+
+  while (true) {
+    let answer = ''
+
+    try {
+      answer = (await readline.question('允许继续吗？ [y/N] ')).trim().toLowerCase()
+    }
+    catch {
+      return false
+    }
+
+    if (!answer || answer === 'n' || answer === 'no') {
+      return false
+    }
+
+    if (answer === 'y' || answer === 'yes') {
+      return true
+    }
+
+    console.log('请输入 y 或 n。')
+  }
+}
 
 async function runUserInput(runtime: CliRuntime, input: string) {
   const isNewSession = !runtime.currentSessionId
@@ -46,11 +80,13 @@ export async function startCli(initialInput?: string) {
     loadPersistedMemory(),
     listPersistedSessions(),
   ])
-  const runtime = createCliRuntime(memory)
   const readline = createInterface({
     input: process.stdin,
     output: process.stdout,
     terminal: true,
+  })
+  const runtime = createCliRuntime(memory, {
+    requestApproval: async request => await confirmApproval(readline, request),
   })
 
   if (memory) {

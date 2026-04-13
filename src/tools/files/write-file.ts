@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import { writeFile as fsWriteFile, mkdir, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { getBooleanOption, getRequiredPath, getRequiredString } from './args'
+import { requestFileMutationApproval } from './approval'
 import { createBackup } from './backup-store'
 import { pathExists, resolveWorkspacePath } from './workspace'
 
@@ -37,7 +38,7 @@ export const writeFileTool: AgentTool = {
       },
     },
   },
-  execute: async (args) => {
+  execute: async (args, context) => {
     const requestedPath = getRequiredPath(args.path)
     const content = getRequiredString(args.content, 'content')
     const overwrite = getBooleanOption(args.overwrite, 'overwrite', false)
@@ -59,6 +60,12 @@ export const writeFileTool: AgentTool = {
         throw new Error(`目标不是文件: ${relativePath}`)
       }
     }
+
+    await requestFileMutationApproval(context, {
+      toolName: 'writeFile',
+      summary: existed ? `覆盖文件 ${relativePath}` : `创建文件 ${relativePath}`,
+      paths: [relativePath],
+    })
 
     const backup = await createBackup({
       operation: 'writeFile',

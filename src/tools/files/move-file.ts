@@ -2,6 +2,7 @@ import type { AgentTool } from '@/types'
 import { mkdir, rename, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { getBooleanOption, getRequiredPath } from './args'
+import { requestFileMutationApproval } from './approval'
 import { createBackup } from './backup-store'
 import { pathExists, resolveWorkspacePath } from './workspace'
 
@@ -36,7 +37,7 @@ export const moveFileTool: AgentTool = {
       },
     },
   },
-  execute: async (args) => {
+  execute: async (args, context) => {
     const fromPath = getRequiredPath(args.fromPath, 'fromPath')
     const toPath = getRequiredPath(args.toPath, 'toPath')
     const overwrite = getBooleanOption(args.overwrite, 'overwrite', false)
@@ -67,6 +68,12 @@ export const moveFileTool: AgentTool = {
         throw new Error(`目标不是文件: ${to.relativePath}`)
       }
     }
+
+    await requestFileMutationApproval(context, {
+      toolName: 'moveFile',
+      summary: `移动文件 ${from.relativePath} -> ${to.relativePath}`,
+      paths: [from.relativePath, to.relativePath],
+    })
 
     const backup = await createBackup({
       operation: 'moveFile',

@@ -1,3 +1,4 @@
+export { isMutationToolName } from './approval'
 export { applyFileEditsTool } from './apply-file-edits'
 export { deleteFileTool } from './delete-file'
 export { getLatestBackupTool } from './get-latest-backup'

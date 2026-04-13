@@ -6,7 +6,7 @@ A minimal project for learning how an AI Agent evolves: start with a single mode
 
 ## Current Status
 
-The project is currently in the **interactive CLI + persistent memory + multi-session management** stage on the [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) branch.
+The project is currently in the **approval + validation loop on top of the interactive CLI** stage on the [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) branch.
 
 Current capabilities:
 
@@ -34,6 +34,8 @@ Current capabilities:
   - `searchInFiles`
   - `gitStatus`
   - `gitDiff`
+  - `runCommand`
+  - `validateWorkspace`
   - `listBackups`
   - `getLatestBackup`
   - `writeFile`
@@ -47,6 +49,9 @@ Current capabilities:
   - readback after writes
   - move/delete checks
   - git status + git diff inspection after file changes and restores
+- approval boundary before mutation tools run
+- whitelist command execution for validation workflows
+- automatic `pnpm typecheck` + `pnpm build` after successful mutation tools
 - automatic backup generation before mutation tools run
 - `tsdown` build output for distributable `.js` files
 
@@ -54,24 +59,23 @@ Current capabilities:
 
 ### Current Stage
 
-#### Stage 6: Multi-Session Interactive CLI
+#### Stage 7: Approval And Validation Loop
 
 - Status: In progress on [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - Focus:
-  - move from one-shot CLI usage to a real conversational workflow
-  - persist project memory separately from chat history
-  - manage multiple saved sessions explicitly instead of auto-loading previous history
-  - separate CLI input handling from slash-command implementations
+  - add confirmation boundaries before risky write actions
+  - let the agent run whitelisted project commands
+  - automatically validate edits with typecheck/build after mutations
 
 ### Planned Next Stage
 
-#### Stage 7: Approval And Validation Loop
+#### Stage 8: Planner And Self-Review
 
 - Status: Planned, branch not created yet
 - Focus:
-  - add confirmation boundaries before risky write actions
   - expose more visible action logs and diffs during long tasks
-  - let the agent run validation steps such as typecheck, tests, or lint after edits
+  - add task planning before complex edits
+  - add a structured self-review summary after changes
 
 ### Completed Stages
 
@@ -138,8 +142,9 @@ Current capabilities:
 | Stage 3: Workspace File IO | Completed | `stage/file-io` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ffile-io) |
 | Stage 4: Undo / Redo Safety Layer | Completed | `stage/undo-redo` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo) |
 | Stage 5: Persistent Memory Foundation | Completed | `stage/memory` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory) |
-| Stage 6: Multi-Session Interactive CLI | Current | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| Stage 7: Approval And Validation Loop | Planned | N/A | Not created yet |
+| Stage 6: Multi-Session Interactive CLI | Completed on current branch | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| Stage 7: Approval And Validation Loop | Current | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| Stage 8: Planner And Self-Review | Planned | N/A | Not created yet |
 
 ## Tool Groups
 
@@ -154,6 +159,11 @@ Current capabilities:
 
 - `gitStatus`
 - `gitDiff`
+
+### Validation Tools
+
+- `runCommand`
+- `validateWorkspace`
 
 ### Mutation Tools
 
@@ -243,6 +253,7 @@ src/
   tools/        # tool definitions and execution
     files/      # workspace read/write/recovery tools
     git/        # git inspection tools
+    shell/      # command execution and workspace validation
   types/        # shared types
   index.ts      # CLI entry
 ```

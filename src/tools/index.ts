@@ -1,9 +1,11 @@
+import type { ToolExecutionContext } from '@/types'
 import type { ChatCompletionMessageToolCall, ChatCompletionToolMessageParam } from 'openai/resources/chat/completions'
 import {
   applyFileEditsTool,
   buildMutationValidation,
   deleteFileTool,
   getLatestBackupTool,
+  isMutationToolName,
   listBackupsTool,
   listFilesTool,
   moveFileTool,
@@ -17,6 +19,11 @@ import {
 } from './files'
 import { getCurrentTimeTool } from './get-current-time'
 import { gitDiffTool, gitStatusTool } from './git'
+import {
+  runCommandTool,
+  runDefaultMutationValidation,
+  validateWorkspaceTool,
+} from './shell'
 
 export { toolPromptLines } from './prompt'
 
@@ -28,6 +35,8 @@ const tools = [
   searchInFilesTool,
   gitStatusTool,
   gitDiffTool,
+  runCommandTool,
+  validateWorkspaceTool,
   listBackupsTool,
   getLatestBackupTool,
   rollbackLatestTool,
@@ -63,7 +72,10 @@ function serializeToolResult(result: unknown) {
 
 export const toolDefinitions = tools.map(tool => tool.definition)
 
-export async function executeToolCalls(toolCalls: ChatCompletionMessageToolCall[]) {
+export async function executeToolCalls(
+  toolCalls: ChatCompletionMessageToolCall[],
+  context: ToolExecutionContext = {},
+) {
   const toolMessages: ChatCompletionToolMessageParam[] = []
 
   for (const toolCall of toolCalls) {
@@ -95,12 +107,40 @@ export async function executeToolCalls(toolCalls: ChatCompletionMessageToolCall[
 
     try {
       const args = parseToolArguments(toolCall.function.arguments)
-      const rawResult = await tool.execute(args)
+      const rawResult = await tool.execute(args, context)
       const validation = await buildMutationValidation(toolCall.function.name, rawResult)
-      const result = validation && rawResult && typeof rawResult === 'object' && !Array.isArray(rawResult)
+      let workspaceValidation: unknown
+
+      if (isMutationToolName(toolCall.function.name)) {
+        try {
+          workspaceValidation = await runDefaultMutationValidation(context)
+        }
+        catch (error: unknown) {
+          const message = error instanceof Error ? error.message : '自动验证失败'
+          workspaceValidation = {
+            passed: false,
+            error: message,
+            steps: [],
+            requestedCommands: ['pnpm typecheck', 'pnpm build'],
+            executedCommands: [],
+          }
+        }
+      }
+
+      const extraPayload: Record<string, unknown> = {}
+
+      if (validation) {
+        extraPayload.validation = validation
+      }
+
+      if (workspaceValidation) {
+        extraPayload.workspaceValidation = workspaceValidation
+      }
+
+      const result = rawResult && typeof rawResult === 'object' && !Array.isArray(rawResult) && Object.keys(extraPayload).length > 0
         ? {
             ...rawResult,
-            validation,
+            ...extraPayload,
           }
         : rawResult
 

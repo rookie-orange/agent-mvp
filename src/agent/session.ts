@@ -7,6 +7,7 @@ import type {
   AgentRunInput,
   AgentRunOptions,
   AgentSession,
+  ToolExecutionContext,
 } from '../types'
 import { createResponse } from '../llm'
 import { executeToolCalls, toolDefinitions } from '../tools'
@@ -65,6 +66,7 @@ async function runTurn(
   conversationMessages: ChatCompletionMessageParam[],
   input: AgentRunInput,
   trace: ReturnType<typeof createTracer>,
+  toolContext: ToolExecutionContext,
   memory?: string,
 ) {
   const messages = [
@@ -116,7 +118,7 @@ async function runTurn(
       }
     }
 
-    const toolMessages = await executeToolCalls(toolCalls)
+    const toolMessages = await executeToolCalls(toolCalls, toolContext)
 
     for (const toolMessage of toolMessages) {
       trace(`工具返回: ${previewToolMessageContent(toolMessage.content)}`)
@@ -131,10 +133,11 @@ export function createAgentSession(options: AgentRunOptions = {}): AgentSession 
   const trace = createTracer(options.onTrace)
   let conversationMessages = options.conversationMessages?.slice() || []
   let memory = options.memory?.trim() || ''
+  const toolContext = options.toolContext || {}
 
   return {
     runTurn: async (input) => {
-      const result = await runTurn(conversationMessages, input, trace, memory)
+      const result = await runTurn(conversationMessages, input, trace, toolContext, memory)
       conversationMessages = result.conversationMessages
       return result.finalAnswer
     },

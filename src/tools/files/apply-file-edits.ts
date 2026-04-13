@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { isArray, isObject } from '@/shared/general'
 import { getBooleanOption, getExpectedOccurrences, getRequiredPath, getRequiredString } from './args'
+import { requestFileMutationApproval } from './approval'
 import { createBackup } from './backup-store'
 import { countOccurrences, replaceFirstOccurrence } from './text-edits'
 import { resolveWorkspacePath } from './workspace'
@@ -90,7 +91,7 @@ export const applyFileEditsTool: AgentTool = {
       },
     },
   },
-  execute: async (args) => {
+  execute: async (args, context) => {
     const requestedPath = getRequiredPath(args.path)
     const edits = parseEdits(args.edits)
     const { resolvedPath, relativePath } = resolveWorkspacePath(
@@ -146,6 +147,12 @@ export const applyFileEditsTool: AgentTool = {
     if (nextContent === originalContent) {
       throw new Error('应用编辑后文件内容没有变化。')
     }
+
+    await requestFileMutationApproval(context, {
+      toolName: 'applyFileEdits',
+      summary: `批量修改文件 ${relativePath}`,
+      paths: [relativePath],
+    })
 
     const backup = await createBackup({
       operation: 'applyFileEdits',

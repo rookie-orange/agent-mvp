@@ -1,5 +1,6 @@
 import type { AgentTool } from '@/types'
 import { getNonEmptyString } from './args'
+import { requestFileMutationApproval } from './approval'
 import { rollbackLatestBackup } from './backup-store'
 
 export const rollbackLatestTool: AgentTool = {
@@ -24,7 +25,7 @@ export const rollbackLatestTool: AgentTool = {
       },
     },
   },
-  execute: async (args) => {
+  execute: async (args, context) => {
     const path = args.path === undefined ? undefined : getNonEmptyString(args.path, 'path')
     const operation = args.operation === undefined ? undefined : getNonEmptyString(args.operation, 'operation')
     const query: {
@@ -39,6 +40,17 @@ export const rollbackLatestTool: AgentTool = {
     if (operation !== undefined) {
       query.operation = operation
     }
+
+    const scopeSummary = [
+      path ? `路径 ${path}` : '',
+      operation ? `操作 ${operation}` : '',
+    ].filter(Boolean).join('，')
+
+    await requestFileMutationApproval(context, {
+      toolName: 'rollbackLatest',
+      summary: scopeSummary ? `回滚最近一次备份（${scopeSummary}）` : '回滚最近一次备份',
+      paths: path ? [path] : [],
+    })
 
     return await rollbackLatestBackup(query)
   },

@@ -4,4 +4,6 @@ export type {
   AgentSession,
   AgentTool,
   CreateResponseParams,
+  ToolApprovalRequest,
+  ToolExecutionContext,
 } from './agent'

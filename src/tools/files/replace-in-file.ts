@@ -2,6 +2,7 @@ import type { AgentTool } from '@/types'
 import { Buffer } from 'node:buffer'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { getBooleanOption, getExpectedOccurrences, getRequiredPath, getRequiredString } from './args'
+import { requestFileMutationApproval } from './approval'
 import { createBackup } from './backup-store'
 import { countOccurrences, replaceFirstOccurrence } from './text-edits'
 import { resolveWorkspacePath } from './workspace'
@@ -42,7 +43,7 @@ export const replaceInFileTool: AgentTool = {
       },
     },
   },
-  execute: async (args) => {
+  execute: async (args, context) => {
     const requestedPath = getRequiredPath(args.path)
     const find = getRequiredString(args.find, 'find')
     const replace = getRequiredString(args.replace, 'replace')
@@ -81,6 +82,12 @@ export const replaceInFileTool: AgentTool = {
     if (nextContent === originalContent) {
       throw new Error('替换后文件内容没有变化。')
     }
+
+    await requestFileMutationApproval(context, {
+      toolName: 'replaceInFile',
+      summary: `修改文件 ${relativePath}`,
+      paths: [relativePath],
+    })
 
     const backup = await createBackup({
       operation: 'replaceInFile',

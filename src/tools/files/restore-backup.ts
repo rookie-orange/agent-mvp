@@ -1,5 +1,6 @@
 import type { AgentTool } from '@/types'
 import { getNonEmptyString } from './args'
+import { requestFileMutationApproval } from './approval'
 import { restoreBackup } from './backup-store'
 
 export const restoreBackupTool: AgentTool = {
@@ -21,8 +22,14 @@ export const restoreBackupTool: AgentTool = {
       },
     },
   },
-  execute: async (args) => {
+  execute: async (args, context) => {
     const backupId = getNonEmptyString(args.backupId, 'backupId')
+
+    await requestFileMutationApproval(context, {
+      toolName: 'restoreBackup',
+      summary: `恢复备份 ${backupId}`,
+      paths: [],
+    })
 
     return await restoreBackup({ backupId })
   },

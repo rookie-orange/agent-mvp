@@ -1,6 +1,7 @@
 import type { AgentTool } from '@/types'
 import { rm, stat } from 'node:fs/promises'
 import { getBooleanOption, getRequiredPath } from './args'
+import { requestFileMutationApproval } from './approval'
 import { createBackup } from './backup-store'
 import { pathExists, resolveWorkspacePath } from './workspace'
 
@@ -27,7 +28,7 @@ export const deleteFileTool: AgentTool = {
       },
     },
   },
-  execute: async (args) => {
+  execute: async (args, context) => {
     const requestedPath = getRequiredPath(args.path)
     const ignoreMissing = getBooleanOption(args.ignoreMissing, 'ignoreMissing', false)
     const { resolvedPath, relativePath } = resolveWorkspacePath(
@@ -53,6 +54,12 @@ export const deleteFileTool: AgentTool = {
     if (!targetStat.isFile()) {
       throw new Error(`目标不是文件: ${relativePath}`)
     }
+
+    await requestFileMutationApproval(context, {
+      toolName: 'deleteFile',
+      summary: `删除文件 ${relativePath}`,
+      paths: [relativePath],
+    })
 
     const backup = await createBackup({
       operation: 'deleteFile',

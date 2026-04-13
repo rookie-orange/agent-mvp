@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-当前项目处于 **交互式 CLI + 持久化记忆 + 多会话管理** 阶段，对应当前的 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) 分支。
+当前项目处于 **在交互式 CLI 之上补齐审批与验证闭环** 阶段，对应当前的 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) 分支。
 
 当前已经具备的能力：
 
@@ -34,6 +34,8 @@
   - `searchInFiles`
   - `gitStatus`
   - `gitDiff`
+  - `runCommand`
+  - `validateWorkspace`
   - `listBackups`
   - `getLatestBackup`
   - `writeFile`
@@ -47,6 +49,9 @@
   - 写入后自动回读
   - 移动 / 删除后自动检查
   - 文件修改与恢复后自动附带 Git 状态与 diff 自检
+- 高风险修改工具执行前会先进入 CLI 审批
+- 命令执行限制为白名单验证命令
+- 修改成功后会自动运行 `pnpm typecheck` 与 `pnpm build`
 - 所有写类工具在执行前会自动生成备份
 - 通过 `tsdown` 构建可分发的 `.js` 产物
 
@@ -54,24 +59,23 @@
 
 ### 当前阶段
 
-#### 阶段 6：多会话交互式 CLI
+#### 阶段 7：确认与验证闭环
 
 - 状态：进行中，位于 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - 目标：
-  - 把 CLI 从一次性调用演进为真实的连续协作流程
-  - 把项目记忆和聊天历史拆开持久化
-  - 让多会话由用户显式管理，而不是自动恢复上次历史
-  - 把 CLI 输入层和 slash commands 实现解耦
+  - 在高风险写操作前加入确认边界
+  - 让 Agent 运行白名单项目命令
+  - 在编辑后自动执行 typecheck / build 验证
 
 ### 下一阶段规划
 
-#### 阶段 7：确认与验证闭环
+#### 阶段 8：Planner 与自检总结
 
 - 状态：规划中，暂未创建分支
 - 目标：
-  - 在高风险写操作前加入确认边界
   - 在长任务中更明显地展示动作日志和 diff
-  - 在编辑后让 Agent 自动执行 typecheck、test、lint 等验证步骤
+  - 在复杂编辑前增加任务规划
+  - 在修改后输出结构化自检总结
 
 ### 已完成阶段
 
@@ -138,8 +142,9 @@
 | 阶段 3：工作区 File IO | 已完成 | `stage/file-io` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ffile-io) |
 | 阶段 4：Undo / Redo 安全层 | 已完成 | `stage/undo-redo` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo) |
 | 阶段 5：持久化记忆基础层 | 已完成 | `stage/memory` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory) |
-| 阶段 6：多会话交互式 CLI | 当前阶段 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| 阶段 7：确认与验证闭环 | 规划中 | N/A | 尚未创建 |
+| 阶段 6：多会话交互式 CLI | 已在当前分支完成 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| 阶段 7：确认与验证闭环 | 当前阶段 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| 阶段 8：Planner 与自检总结 | 规划中 | N/A | 尚未创建 |
 
 ## 工具分组
 
@@ -154,6 +159,11 @@
 
 - `gitStatus`
 - `gitDiff`
+
+### 验证执行类
+
+- `runCommand`
+- `validateWorkspace`
 
 ### 修改类
 
@@ -243,6 +253,7 @@ src/
   tools/        # 工具定义与执行
     files/      # 工作区读写与恢复工具
     git/        # Git 自检工具
+    shell/      # 命令执行与工作区验证工具
   types/        # 共享类型
   index.ts      # CLI 入口
 ```
