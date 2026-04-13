@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-当前项目处于 **在交互式 CLI 之上补齐审批与验证闭环** 阶段，对应当前的 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) 分支。
+当前项目处于 **在交互式 CLI 之上补齐审批与验证闭环** 阶段，对应当前的 [`stage/approval-validation`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation) 分支。
 
 当前已经具备的能力：
 
@@ -62,7 +62,7 @@
 
 #### 阶段 7：确认与验证闭环
 
-- 状态：进行中，位于 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
+- 状态：进行中，位于 [`stage/approval-validation`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation)
 - 目标：
   - 在高风险写操作前加入确认边界
   - 让 Agent 运行白名单项目命令
@@ -144,7 +144,7 @@
 | 阶段 4：Undo / Redo 安全层 | 已完成 | `stage/undo-redo` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo) |
 | 阶段 5：持久化记忆基础层 | 已完成 | `stage/memory` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory) |
 | 阶段 6：多会话交互式 CLI | 已在当前分支完成 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| 阶段 7：确认与验证闭环 | 当前阶段 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| 阶段 7：确认与验证闭环 | 当前阶段 | `stage/approval-validation` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation) |
 | 阶段 8：Planner 与自检总结 | 规划中 | N/A | 尚未创建 |
 
 ## 工具分组

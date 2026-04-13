@@ -6,7 +6,7 @@ A minimal project for learning how an AI Agent evolves: start with a single mode
 
 ## Current Status
 
-The project is currently in the **approval + validation loop on top of the interactive CLI** stage on the [`main`](https://github.com/rookie-orange/agent-mvp/tree/main) branch.
+The project is currently in the **approval + validation loop on top of the interactive CLI** stage on the [`stage/approval-validation`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation) branch.
 
 Current capabilities:
 
@@ -62,7 +62,7 @@ Current capabilities:
 
 #### Stage 7: Approval And Validation Loop
 
-- Status: In progress on [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
+- Status: In progress on [`stage/approval-validation`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation)
 - Focus:
   - add confirmation boundaries before risky write actions
   - let the agent run whitelisted project commands
@@ -144,7 +144,7 @@ Current capabilities:
 | Stage 4: Undo / Redo Safety Layer | Completed | `stage/undo-redo` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo) |
 | Stage 5: Persistent Memory Foundation | Completed | `stage/memory` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory) |
 | Stage 6: Multi-Session Interactive CLI | Completed on current branch | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| Stage 7: Approval And Validation Loop | Current | `main` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| Stage 7: Approval And Validation Loop | Current | `stage/approval-validation` | [Open branch](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation) |
 | Stage 8: Planner And Self-Review | Planned | N/A | Not created yet |
 
 ## Tool Groups
