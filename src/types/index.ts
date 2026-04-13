@@ -1,4 +1,7 @@
 export type {
+  AgentPlan,
+  AgentPlanStep,
+  AgentPlanStepStatus,
   AgentRunInput,
   AgentRunOptions,
   AgentSession,

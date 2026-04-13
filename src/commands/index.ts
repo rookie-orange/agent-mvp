@@ -2,11 +2,13 @@ import type { CliCommand, CommandContext, CommandResult } from './types'
 import { exitCommand } from './exit'
 import { createHelpCommand } from './help'
 import { memoryCommands } from './memory'
+import { planCommands } from './plan'
 import { sessionCommands } from './session'
 
 const commandsWithoutHelp = [
   ...sessionCommands,
   ...memoryCommands,
+  ...planCommands,
   exitCommand,
 ]
 

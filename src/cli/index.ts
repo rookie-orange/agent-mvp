@@ -1,8 +1,9 @@
-import type { ToolApprovalRequest } from '../types'
+import type { AgentPlan, ToolApprovalRequest } from '../types'
 import type { CliRuntime } from './runtime'
 import process from 'node:process'
 import { createInterface } from 'node:readline/promises'
 import { executeCommand } from '../commands'
+import { formatAgentPlan } from '../planner'
 import {
   getMemoryFilePath,
   listPersistedSessions,
@@ -41,6 +42,15 @@ async function confirmApproval(
 
     console.log('请输入 y 或 n。')
   }
+}
+
+function printPlanUpdate(plan: AgentPlan | null) {
+  if (!plan) {
+    console.log('\n[计划] 当前计划已清空。\n')
+    return
+  }
+
+  console.log(`\n[计划已更新]\n${formatAgentPlan(plan)}\n`)
 }
 
 async function runUserInput(runtime: CliRuntime, input: string) {
@@ -87,6 +97,9 @@ export async function startCli(initialInput?: string) {
   })
   const runtime = createCliRuntime(memory, {
     requestApproval: async request => await confirmApproval(readline, request),
+    onPlanUpdated: (plan) => {
+      printPlanUpdate(plan)
+    },
   })
 
   if (memory) {

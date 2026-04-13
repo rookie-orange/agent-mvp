@@ -1,5 +1,6 @@
 import { fileToolPromptLines } from './files'
 import { gitToolPromptLines } from './git'
+import { plannerToolPromptLines } from './planner'
 import { shellToolPromptLines } from './shell'
 
 const generalToolPromptLines = [
@@ -8,6 +9,7 @@ const generalToolPromptLines = [
 
 export const toolPromptLines = [
   ...generalToolPromptLines,
+  ...plannerToolPromptLines,
   ...fileToolPromptLines,
   ...gitToolPromptLines,
   ...shellToolPromptLines,

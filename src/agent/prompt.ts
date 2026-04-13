@@ -1,3 +1,4 @@
+import type { AgentPlan } from '../types'
 import { toolPromptLines } from '../tools'
 
 const agentPromptLines = [
@@ -23,10 +24,27 @@ function buildMemoryPromptLines(memory?: string) {
   ]
 }
 
-export function buildAgentInstructions(memory?: string) {
+function buildPlanPromptLines(plan?: AgentPlan | null) {
+  if (!plan || plan.items.length === 0) {
+    return []
+  }
+
+  return [
+    '以下是当前会话的执行计划。继续任务时优先参考它，并在必要时调用 updatePlan 更新：',
+    ...(
+      plan.explanation
+        ? [`说明：${plan.explanation}`]
+        : []
+    ),
+    ...plan.items.map(item => `- [${item.status}] ${item.step}`),
+  ]
+}
+
+export function buildAgentInstructions(memory?: string, plan?: AgentPlan | null) {
   return [
     ...agentPromptLines,
     ...buildMemoryPromptLines(memory),
+    ...buildPlanPromptLines(plan),
     ...toolPromptLines,
     ...agentPromptSuffixLines,
   ].join('\n')

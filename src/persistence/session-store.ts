@@ -1,6 +1,8 @@
+import type { AgentPlan } from '@/types'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
+import { normalizeAgentPlan } from '../planner'
 import {
   ensureDir,
   getAgentDataDir,
@@ -11,11 +13,12 @@ import {
 } from './shared'
 
 export interface PersistedSessionData {
-  version: 1
+  version: 1 | 2
   id: string
   title: string
   updatedAt: string
   conversationMessages: ChatCompletionMessageParam[]
+  plan: AgentPlan | null
 }
 
 export interface PersistedSessionSummary {
@@ -29,6 +32,7 @@ interface SavePersistedSessionParams {
   id: string
   title: string
   conversationMessages: ChatCompletionMessageParam[]
+  plan?: AgentPlan | null
 }
 
 const REGEX_SESSION_ID = /^[a-z0-9-]+$/
@@ -102,7 +106,7 @@ export async function listPersistedSessions() {
   )
 
   return sessions
-    .filter((session): session is PersistedSessionData => session !== null)
+    .flatMap(session => session ? [session] : [])
     .map(toSessionSummary)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
@@ -115,11 +119,12 @@ export async function loadPersistedSession(sessionId: string) {
   }
 
   return {
-    version: 1,
+    version: data.version === 2 ? 2 : 1,
     id: normalizeSessionId(data.id || sessionId),
     title: data.title?.trim() || createSessionTitle(),
     updatedAt: data.updatedAt,
     conversationMessages: data.conversationMessages,
+    plan: normalizeAgentPlan(data.plan),
   } satisfies PersistedSessionData
 }
 
@@ -127,15 +132,17 @@ export async function savePersistedSession({
   id,
   title,
   conversationMessages,
+  plan,
 }: SavePersistedSessionParams) {
   await ensureDir(getSessionsDirPath())
 
   const data: PersistedSessionData = {
-    version: 1,
+    version: 2,
     id: normalizeSessionId(id),
     title: title.trim() || createSessionTitle(),
     updatedAt: new Date().toISOString(),
     conversationMessages,
+    plan: plan ?? null,
   }
 
   await writeJsonFile(getSessionFilePath(data.id), data)

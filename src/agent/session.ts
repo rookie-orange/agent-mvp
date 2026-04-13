@@ -4,6 +4,7 @@ import type {
   ChatCompletionMessageParam,
 } from 'openai/resources/chat/completions'
 import type {
+  AgentPlan,
   AgentRunInput,
   AgentRunOptions,
   AgentSession,
@@ -16,8 +17,8 @@ import { buildAgentInstructions } from './prompt'
 
 const MAX_TOOL_STEPS = 10
 
-function createBaseMessages(memory?: string): ChatCompletionMessageParam[] {
-  return [{ role: 'system', content: buildAgentInstructions(memory) }]
+function createBaseMessages(memory?: string, plan?: AgentPlan | null): ChatCompletionMessageParam[] {
+  return [{ role: 'system', content: buildAgentInstructions(memory, plan) }]
 }
 
 function getTextContent(message: ChatCompletionMessage) {
@@ -79,11 +80,12 @@ async function runTurn(
   input: AgentRunInput,
   trace: ReturnType<typeof createTracer>,
   toolContext: ToolExecutionContext,
+  plan: AgentPlan | null,
   memory?: string,
 ) {
   const turnToolContext = createTurnToolContext(toolContext)
   const messages = [
-    ...createBaseMessages(memory),
+    ...createBaseMessages(memory, plan),
     ...conversationMessages,
     { role: 'user', content: input } satisfies ChatCompletionMessageParam,
   ]
@@ -146,21 +148,37 @@ export function createAgentSession(options: AgentRunOptions = {}): AgentSession 
   const trace = createTracer(options.onTrace)
   let conversationMessages = options.conversationMessages?.slice() || []
   let memory = options.memory?.trim() || ''
-  const toolContext = options.toolContext || {}
+  let plan = options.plan ?? null
+  const externalToolContext = options.toolContext || {}
+  const toolContext: ToolExecutionContext = {
+    ...externalToolContext,
+    getPlan: () => plan,
+    setPlan: (nextPlan) => {
+      plan = nextPlan
+      externalToolContext.onPlanUpdated?.(nextPlan)
+    },
+  }
 
   return {
     runTurn: async (input) => {
-      const result = await runTurn(conversationMessages, input, trace, toolContext, memory)
+      const result = await runTurn(conversationMessages, input, trace, toolContext, plan, memory)
       conversationMessages = result.conversationMessages
       return result.finalAnswer
     },
     reset: () => {
       conversationMessages = []
+      plan = null
+      externalToolContext.onPlanUpdated?.(null)
     },
     setMemory: (nextMemory) => {
       memory = nextMemory.trim()
     },
     getMemory: () => memory,
+    setPlan: (nextPlan) => {
+      plan = nextPlan
+      externalToolContext.onPlanUpdated?.(nextPlan)
+    },
+    getPlan: () => plan,
     getConversationMessages: () => conversationMessages.slice(),
   }
 }

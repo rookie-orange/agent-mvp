@@ -6,6 +6,19 @@ import type {
 
 export type AgentRunInput = string
 
+export type AgentPlanStepStatus = 'pending' | 'in_progress' | 'completed'
+
+export interface AgentPlanStep {
+  step: string
+  status: AgentPlanStepStatus
+}
+
+export interface AgentPlan {
+  explanation?: string
+  items: AgentPlanStep[]
+  updatedAt: string
+}
+
 export interface ToolApprovalRequest {
   kind: 'file-mutation' | 'command-execution'
   toolName: string
@@ -19,6 +32,9 @@ export interface ToolExecutionTurnState {
 
 export interface ToolExecutionContext {
   requestApproval?: (request: ToolApprovalRequest) => Promise<boolean>
+  getPlan?: () => AgentPlan | null
+  setPlan?: (plan: AgentPlan | null) => void
+  onPlanUpdated?: (plan: AgentPlan | null) => void
   turnState?: ToolExecutionTurnState
 }
 
@@ -26,6 +42,7 @@ export interface AgentRunOptions {
   onTrace?: (message: string) => void
   conversationMessages?: ChatCompletionMessageParam[]
   memory?: string
+  plan?: AgentPlan | null
   toolContext?: ToolExecutionContext
 }
 
@@ -34,6 +51,8 @@ export interface AgentSession {
   reset: () => void
   setMemory: (memory: string) => void
   getMemory: () => string
+  setPlan: (plan: AgentPlan | null) => void
+  getPlan: () => AgentPlan | null
   getConversationMessages: () => ChatCompletionMessageParam[]
 }
 

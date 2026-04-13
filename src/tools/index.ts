@@ -20,6 +20,7 @@ import {
 } from './files'
 import { getCurrentTimeTool } from './get-current-time'
 import { buildGitChangeSummaryFromInspection, buildGitInspection, gitDiffTool, gitStatusTool } from './git'
+import { updatePlanTool } from './planner'
 import {
   runCommandTool,
   runDefaultMutationValidation,
@@ -30,6 +31,7 @@ export { toolPromptLines } from './prompt'
 
 const tools = [
   getCurrentTimeTool,
+  updatePlanTool,
   listFilesTool,
   readLocalFileTool,
   readMultipleFilesTool,

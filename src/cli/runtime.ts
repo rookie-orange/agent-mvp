@@ -1,3 +1,4 @@
+import type { AgentPlan } from '../types'
 import type { PersistedSessionData } from '../persistence/session-store'
 import type { AgentRunOptions, AgentSession, ToolExecutionContext } from '../types'
 import { createAgentSession } from '../agent'
@@ -14,16 +15,20 @@ export interface CliRuntime {
   currentSessionTitle: string | null
   pendingSessionTitle: string | null
   requestApproval?: ToolExecutionContext['requestApproval']
+  onPlanUpdated?: ToolExecutionContext['onPlanUpdated']
 }
 
 interface CreateCliRuntimeOptions {
   requestApproval?: ToolExecutionContext['requestApproval']
+  onPlanUpdated?: ToolExecutionContext['onPlanUpdated']
 }
 
 function createRuntimeAgentSession(options: {
   memory: string
   conversationMessages?: AgentRunOptions['conversationMessages']
+  plan?: AgentPlan | null
   requestApproval?: ToolExecutionContext['requestApproval']
+  onPlanUpdated?: ToolExecutionContext['onPlanUpdated']
 }) {
   const sessionOptions: AgentRunOptions = {
     memory: options.memory,
@@ -33,10 +38,20 @@ function createRuntimeAgentSession(options: {
     sessionOptions.conversationMessages = options.conversationMessages
   }
 
+  if (options.plan !== undefined) {
+    sessionOptions.plan = options.plan
+  }
+
+  if (options.requestApproval || options.onPlanUpdated) {
+    sessionOptions.toolContext = {}
+  }
+
   if (options.requestApproval) {
-    sessionOptions.toolContext = {
-      requestApproval: options.requestApproval,
-    }
+    sessionOptions.toolContext!.requestApproval = options.requestApproval
+  }
+
+  if (options.onPlanUpdated) {
+    sessionOptions.toolContext!.onPlanUpdated = options.onPlanUpdated
   }
 
   return createAgentSession(sessionOptions)
@@ -47,11 +62,13 @@ export function createCliRuntime(memory: string, options: CreateCliRuntimeOption
     session: createRuntimeAgentSession({
       memory,
       requestApproval: options.requestApproval,
+      onPlanUpdated: options.onPlanUpdated,
     }),
     currentSessionId: null,
     currentSessionTitle: null,
     pendingSessionTitle: null,
     requestApproval: options.requestApproval,
+    onPlanUpdated: options.onPlanUpdated,
   }
 }
 
@@ -60,6 +77,7 @@ export function resetRuntimeSession(runtime: CliRuntime) {
   runtime.session = createRuntimeAgentSession({
     memory,
     requestApproval: runtime.requestApproval,
+    onPlanUpdated: runtime.onPlanUpdated,
   })
   runtime.currentSessionId = null
   runtime.currentSessionTitle = null
@@ -76,6 +94,8 @@ export function loadSessionIntoRuntime(runtime: CliRuntime, session: PersistedSe
     memory: runtime.session.getMemory(),
     conversationMessages: session.conversationMessages,
     requestApproval: runtime.requestApproval,
+    onPlanUpdated: runtime.onPlanUpdated,
+    plan: session.plan ?? null,
   })
   runtime.currentSessionId = session.id
   runtime.currentSessionTitle = session.title
@@ -91,6 +111,7 @@ export async function saveCurrentSession(runtime: CliRuntime) {
     id: runtime.currentSessionId,
     title: runtime.currentSessionTitle,
     conversationMessages: runtime.session.getConversationMessages(),
+    plan: runtime.session.getPlan(),
   })
 }
 
