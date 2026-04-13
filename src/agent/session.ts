@@ -8,6 +8,7 @@ import type {
   AgentRunOptions,
   AgentSession,
   ToolExecutionContext,
+  ToolExecutionTurnState,
 } from '../types'
 import { createResponse } from '../llm'
 import { executeToolCalls, toolDefinitions } from '../tools'
@@ -62,6 +63,17 @@ function previewToolMessageContent(content: ChatCompletionAssistantMessageParam[
   return previewText(JSON.stringify(content))
 }
 
+function createTurnToolContext(toolContext: ToolExecutionContext): ToolExecutionContext {
+  const turnState: ToolExecutionTurnState = {
+    approvedMutationKeys: new Set(),
+  }
+
+  return {
+    ...toolContext,
+    turnState,
+  }
+}
+
 async function runTurn(
   conversationMessages: ChatCompletionMessageParam[],
   input: AgentRunInput,
@@ -69,6 +81,7 @@ async function runTurn(
   toolContext: ToolExecutionContext,
   memory?: string,
 ) {
+  const turnToolContext = createTurnToolContext(toolContext)
   const messages = [
     ...createBaseMessages(memory),
     ...conversationMessages,
@@ -118,7 +131,7 @@ async function runTurn(
       }
     }
 
-    const toolMessages = await executeToolCalls(toolCalls, toolContext)
+    const toolMessages = await executeToolCalls(toolCalls, turnToolContext)
 
     for (const toolMessage of toolMessages) {
       trace(`工具返回: ${previewToolMessageContent(toolMessage.content)}`)

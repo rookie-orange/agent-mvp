@@ -13,8 +13,13 @@ export interface ToolApprovalRequest {
   details?: string[]
 }
 
+export interface ToolExecutionTurnState {
+  approvedMutationKeys: Set<string>
+}
+
 export interface ToolExecutionContext {
   requestApproval?: (request: ToolApprovalRequest) => Promise<boolean>
+  turnState?: ToolExecutionTurnState
 }
 
 export interface AgentRunOptions {

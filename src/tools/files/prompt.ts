@@ -13,5 +13,7 @@ export const fileToolPromptLines = [
   '当用户没有明确给出 backupId，但需要先查看或确认最近一条备份时，可以调用 getLatestBackup。',
   '当用户明确给出 backupId 或你已经拿到目标 backupId 时，使用 restoreBackup 执行恢复。',
   '在修改文件之前，优先先读取相关文件内容，避免盲改。',
+  '当同一个文件需要做多处修改时，优先一次性使用 applyFileEdits，不要连续多次调用 replaceInFile。',
+  '如果已经拿到某个文件的完整上下文，尽量在同一轮中完成该文件修改，减少拆分成多轮工具调用。',
   '写类工具会自动返回 backup 信息。文件修改完成后，要基于工具返回的 validation、changeSummary、workspaceValidation 字段确认结果是否符合预期。',
 ]

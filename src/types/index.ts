@@ -6,4 +6,5 @@ export type {
   CreateResponseParams,
   ToolApprovalRequest,
   ToolExecutionContext,
+  ToolExecutionTurnState,
 } from './agent'

@@ -31,6 +31,28 @@ interface FileMutationApprovalInput {
   paths: string[]
 }
 
+function createApprovalCacheKey(toolName: string, paths: string[]) {
+  const uniquePaths = [...new Set(paths)].filter(Boolean).sort()
+
+  if (toolName === 'writeFile' || toolName === 'replaceInFile' || toolName === 'applyFileEdits') {
+    return `edit:${uniquePaths.join('|')}`
+  }
+
+  if (toolName === 'deleteFile') {
+    return `delete:${uniquePaths.join('|')}`
+  }
+
+  if (toolName === 'moveFile') {
+    return `move:${uniquePaths.join('|')}`
+  }
+
+  if (toolName === 'restoreBackup' || toolName === 'rollbackLatest') {
+    return `restore:${uniquePaths.join('|') || toolName}`
+  }
+
+  return `${toolName}:${uniquePaths.join('|')}`
+}
+
 export function isMutationToolName(toolName: string) {
   return mutationToolNames.has(toolName)
 }
@@ -39,6 +61,13 @@ export async function requestFileMutationApproval(
   context: ToolExecutionContext,
   input: FileMutationApprovalInput,
 ) {
+  const approvalCacheKey = createApprovalCacheKey(input.toolName, input.paths)
+  const approvedMutationKeys = context.turnState?.approvedMutationKeys
+
+  if (approvedMutationKeys?.has(approvalCacheKey)) {
+    return
+  }
+
   await ensureToolApproval(context, {
     kind: 'file-mutation',
     toolName: input.toolName,
@@ -48,4 +77,6 @@ export async function requestFileMutationApproval(
       '批准后会自动运行验证: pnpm typecheck, pnpm build',
     ],
   })
+
+  approvedMutationKeys?.add(approvalCacheKey)
 }

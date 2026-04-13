@@ -28,8 +28,8 @@
             background: #ffffff;
             border-radius: 0;
             padding: 30px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e0e0e0;
+            box-shadow: none;
+            border: 2px solid #000000;
         }
 
         .game-board {
@@ -37,7 +37,7 @@
         }
 
         canvas {
-            border: 1px solid #000000;
+            border: 2px solid #000000;
             border-radius: 0;
             background: #ffffff;
             box-shadow: none;
@@ -51,10 +51,10 @@
         }
 
         .info-section {
-            background: #f5f5f5;
+            background: #ffffff;
             border-radius: 0;
             padding: 20px;
-            border: 1px solid #000000;
+            border: 2px solid #000000;
         }
 
         .info-title {
@@ -63,26 +63,31 @@
             margin-bottom: 10px;
             color: #000000;
             text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .info-value {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
             color: #000000;
             text-align: center;
+            font-family: 'Courier New', monospace;
         }
 
         .next-piece {
             background: #ffffff;
             border-radius: 0;
             padding: 10px;
-            border: 1px solid #000000;
+            border: 2px solid #000000;
         }
 
         .controls {
             font-size: 14px;
-            line-height: 1.6;
+            line-height: 1.8;
             color: #000000;
+            font-family: 'Courier New', monospace;
+            text-align: center;
         }
 
         .game-over {
@@ -92,25 +97,29 @@
             transform: translate(-50%, -50%);
             background: #ffffff;
             color: #000000;
-            padding: 30px;
+            padding: 40px;
             border-radius: 0;
             text-align: center;
             font-size: 24px;
             font-weight: bold;
             display: none;
-            border: 1px solid #000000;
+            border: 2px solid #000000;
+            box-shadow: none;
         }
 
         .restart-btn {
             background: #000000;
             color: #ffffff;
-            border: 1px solid #000000;
+            border: 2px solid #000000;
             padding: 12px 24px;
             border-radius: 0;
             font-size: 16px;
             cursor: pointer;
-            margin-top: 15px;
+            margin-top: 20px;
             transition: all 0.2s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .restart-btn:hover {
@@ -122,11 +131,14 @@
 
         .title {
             text-align: center;
-            font-size: 32px;
+            font-size: 28px;
             font-weight: bold;
             margin-bottom: 20px;
             color: #000000;
             text-shadow: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'Arial Black', sans-serif;
         }
     </style>
 </head>
@@ -204,7 +216,7 @@
                 shape: [
                     [1, 1, 1, 1]
                 ],
-                color: '#00f5ff'
+                color: '#000000'
             },
             // O形
             {
@@ -212,7 +224,7 @@
                     [1, 1],
                     [1, 1]
                 ],
-                color: '#ffff00'
+                color: '#000000'
             },
             // T形
             {
@@ -220,7 +232,7 @@
                     [0, 1, 0],
                     [1, 1, 1]
                 ],
-                color: '#a000f0'
+                color: '#000000'
             },
             // S形
             {
@@ -228,7 +240,7 @@
                     [0, 1, 1],
                     [1, 1, 0]
                 ],
-                color: '#00f000'
+                color: '#000000'
             },
             // Z形
             {
@@ -236,7 +248,7 @@
                     [1, 1, 0],
                     [0, 1, 1]
                 ],
-                color: '#f00000'
+                color: '#000000'
             },
             // J形
             {
@@ -244,7 +256,7 @@
                     [1, 0, 0],
                     [1, 1, 1]
                 ],
-                color: '#0000f0'
+                color: '#000000'
             },
             // L形
             {
@@ -252,7 +264,7 @@
                     [0, 0, 1],
                     [1, 1, 1]
                 ],
-                color: '#ff8000'
+                color: '#000000'
             }
         ];
 
