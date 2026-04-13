@@ -3,30 +3,27 @@ import { startCli } from './cli'
 
 function printUsage() {
   console.log([
-    '用法：',
-    '  pnpm dev                  进入交互模式',
-    '  pnpm chat                 进入交互模式',
-    '  pnpm dev "你好"           进入交互模式并发送首条消息',
+    'Usage:',
+    '  pnpm dev [message]       Start [and send the first message]',
   ].join('\n'))
 }
 
+const HELP_FLAGS = new Set(['help', '--help', '-h'])
+
 async function main() {
   const args = process.argv.slice(2)
+  const command = args[0] ?? ''
 
-  if (args[0] === 'help' || args[0] === '--help' || args[0] === '-h') {
+  if (HELP_FLAGS.has(command)) {
     printUsage()
     return
   }
 
-  const initialInput = args[0] === 'chat'
-    ? args.slice(1).join(' ').trim()
-    : args.join(' ').trim()
-
-  await startCli(initialInput || undefined)
+  await startCli(command)
 }
 
 main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : '未知错误'
-  console.error(`运行失败：${message}`)
+  const message = error instanceof Error ? error.message : 'Unknown error'
+  console.error(`Failed to run: ${message}`)
   process.exitCode = 1
 })

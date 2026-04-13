@@ -59,7 +59,7 @@ export async function saveCurrentSession(runtime: CliRuntime) {
   })
 }
 
-export async function runAgentTurn(runtime: CliRuntime, input: string) {
+export async function runRuntimeTurn(runtime: CliRuntime, input: string) {
   const output = await runtime.session.runTurn(input)
 
   if (!runtime.currentSessionId) {

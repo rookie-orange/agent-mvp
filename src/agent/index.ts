@@ -1,1 +1,1 @@
-export { createAgentSession, runAgent } from './run-agent'
+export { createAgentSession } from './session'

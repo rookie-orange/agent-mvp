@@ -148,9 +148,3 @@ export function createAgentSession(options: AgentRunOptions = {}): AgentSession 
     getConversationMessages: () => conversationMessages.slice(),
   }
 }
-
-export async function runAgent(input: AgentRunInput, options: AgentRunOptions = {}) {
-  const session = createAgentSession(options)
-
-  return await session.runTurn(input)
-}

@@ -7,11 +7,11 @@ import {
   listPersistedSessions,
   loadPersistedMemory,
 } from '../persistence'
-import { createCliRuntime, runAgentTurn } from './runtime'
+import { createCliRuntime, runRuntimeTurn } from './runtime'
 
 async function runUserInput(runtime: CliRuntime, input: string) {
   const isNewSession = !runtime.currentSessionId
-  const output = await runAgentTurn(runtime, input)
+  const output = await runRuntimeTurn(runtime, input)
 
   if (isNewSession && runtime.currentSessionId && runtime.currentSessionTitle) {
     console.log(`已创建会话：${runtime.currentSessionId} (${runtime.currentSessionTitle})`)
