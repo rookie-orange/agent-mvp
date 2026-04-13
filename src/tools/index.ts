@@ -1,5 +1,7 @@
 import type { ToolExecutionContext } from '@/types'
 import type { ChatCompletionMessageToolCall, ChatCompletionToolMessageParam } from 'openai/resources/chat/completions'
+import { isObject } from '@/shared/general'
+import type { GitDiffSnapshot, GitStatusSnapshot } from './git/shared'
 import {
   applyFileEditsTool,
   buildMutationValidation,
@@ -18,7 +20,7 @@ import {
   writeFileTool,
 } from './files'
 import { getCurrentTimeTool } from './get-current-time'
-import { gitDiffTool, gitStatusTool } from './git'
+import { buildGitChangeSummaryFromInspection, gitDiffTool, gitStatusTool } from './git'
 import {
   runCommandTool,
   runDefaultMutationValidation,
@@ -70,6 +72,23 @@ function serializeToolResult(result: unknown) {
   return JSON.stringify(result, null, 2)
 }
 
+function getGitInspectionFromValidation(validation: unknown) {
+  if (!isObject(validation)) {
+    return undefined
+  }
+
+  const git = validation.git
+
+  if (!isObject(git) || !isObject(git.status) || !isObject(git.diff)) {
+    return undefined
+  }
+
+  return {
+    status: git.status as unknown as GitStatusSnapshot,
+    diff: git.diff as unknown as GitDiffSnapshot,
+  }
+}
+
 export const toolDefinitions = tools.map(tool => tool.definition)
 
 export async function executeToolCalls(
@@ -109,6 +128,10 @@ export async function executeToolCalls(
       const args = parseToolArguments(toolCall.function.arguments)
       const rawResult = await tool.execute(args, context)
       const validation = await buildMutationValidation(toolCall.function.name, rawResult)
+      const gitInspection = getGitInspectionFromValidation(validation)
+      const changeSummary = gitInspection
+        ? buildGitChangeSummaryFromInspection(gitInspection)
+        : undefined
       let workspaceValidation: unknown
 
       if (isMutationToolName(toolCall.function.name)) {
@@ -131,6 +154,10 @@ export async function executeToolCalls(
 
       if (validation) {
         extraPayload.validation = validation
+      }
+
+      if (changeSummary) {
+        extraPayload.changeSummary = changeSummary
       }
 
       if (workspaceValidation) {

@@ -49,6 +49,7 @@
   - 写入后自动回读
   - 移动 / 删除后自动检查
   - 文件修改与恢复后自动附带 Git 状态与 diff 自检
+  - 修改后基于 Git inspection 自动生成可读的 `changeSummary`
 - 高风险修改工具执行前会先进入 CLI 审批
 - 命令执行限制为白名单验证命令
 - 修改成功后会自动运行 `pnpm typecheck` 与 `pnpm build`

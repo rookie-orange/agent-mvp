@@ -13,5 +13,5 @@ export const fileToolPromptLines = [
   '当用户没有明确给出 backupId，但需要先查看或确认最近一条备份时，可以调用 getLatestBackup。',
   '当用户明确给出 backupId 或你已经拿到目标 backupId 时，使用 restoreBackup 执行恢复。',
   '在修改文件之前，优先先读取相关文件内容，避免盲改。',
-  '写类工具会自动返回 backup 信息。文件修改完成后，要基于工具返回的 validation 字段确认结果是否符合预期；validation 里的 Git 状态和 diff 也属于自检依据。',
+  '写类工具会自动返回 backup 信息。文件修改完成后，要基于工具返回的 validation、changeSummary、workspaceValidation 字段确认结果是否符合预期。',
 ]

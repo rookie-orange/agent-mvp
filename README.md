@@ -49,6 +49,7 @@ Current capabilities:
   - readback after writes
   - move/delete checks
   - git status + git diff inspection after file changes and restores
+  - readable `changeSummary` generated from Git inspection after mutations
 - approval boundary before mutation tools run
 - whitelist command execution for validation workflows
 - automatic `pnpm typecheck` + `pnpm build` after successful mutation tools

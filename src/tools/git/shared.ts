@@ -51,6 +51,30 @@ export interface GitDiffSnapshot {
   diff: string
 }
 
+export interface GitChangeSummaryFile {
+  path: string
+  code: string
+  statusLabel: string
+}
+
+export interface GitChangeSummary {
+  scopePaths: string[]
+  isClean: boolean
+  totalFiles: number
+  truncated: boolean
+  counts: Record<string, number>
+  files: GitChangeSummaryFile[]
+  diffStats: {
+    changedFiles: number
+    addedLines: number
+    removedLines: number
+    hasDiff: boolean
+    truncated: boolean
+  }
+  headline: string
+  notes: string[]
+}
+
 interface GitStatusSnapshotOptions extends ScopeOptions {
   maxEntries?: number
 }
@@ -177,6 +201,17 @@ function getStatusLabel(code: string) {
   return 'changed'
 }
 
+const statusLabelTextMap: Record<string, string> = {
+  added: '新增',
+  modified: '修改',
+  deleted: '删除',
+  renamed: '重命名',
+  untracked: '未跟踪',
+  unmerged: '冲突',
+  copied: '复制',
+  changed: '变更',
+}
+
 function parseGitStatusEntry(line: string): GitStatusEntry | undefined {
   if (line.length < 4) {
     return undefined
@@ -219,9 +254,128 @@ export async function getGitStatusSnapshot({
     scopePaths,
     branch: branchLine,
     isClean: parsedEntries.length === 0,
-    totalEntries: entries.length,
+    totalEntries: parsedEntries.length,
     truncated: parsedEntries.length > safeMaxEntries,
     entries,
+  }
+}
+
+function summarizeDiffLines(diffText: string) {
+  const lines = diffText.split(REGEX_LINE_SPLIT)
+  let changedFiles = 0
+  let addedLines = 0
+  let removedLines = 0
+
+  for (const line of lines) {
+    if (line.startsWith('diff --git ')) {
+      changedFiles += 1
+      continue
+    }
+
+    if (line.startsWith('+++ ') || line.startsWith('--- ') || line.startsWith('@@')) {
+      continue
+    }
+
+    if (line.startsWith('+')) {
+      addedLines += 1
+      continue
+    }
+
+    if (line.startsWith('-')) {
+      removedLines += 1
+    }
+  }
+
+  return {
+    changedFiles,
+    addedLines,
+    removedLines,
+  }
+}
+
+function buildStatusCounts(entries: GitStatusEntry[]) {
+  const counts: Record<string, number> = {}
+
+  for (const entry of entries) {
+    counts[entry.statusLabel] = (counts[entry.statusLabel] || 0) + 1
+  }
+
+  return counts
+}
+
+function formatStatusCounts(counts: Record<string, number>) {
+  const orderedLabels = [
+    'modified',
+    'added',
+    'deleted',
+    'renamed',
+    'untracked',
+    'unmerged',
+    'copied',
+    'changed',
+  ]
+  const parts: string[] = []
+
+  for (const label of orderedLabels) {
+    const count = counts[label]
+
+    if (!count) {
+      continue
+    }
+
+    const text = statusLabelTextMap[label] || label
+    parts.push(`${text} ${count} 个`)
+  }
+
+  return parts
+}
+
+export function buildGitChangeSummaryFromInspection(input: {
+  status: GitStatusSnapshot
+  diff: GitDiffSnapshot
+}): GitChangeSummary {
+  const { status, diff } = input
+  const counts = buildStatusCounts(status.entries)
+  const diffStats = summarizeDiffLines(diff.diff)
+  const countParts = formatStatusCounts(counts)
+  const notes: string[] = []
+
+  if (status.truncated) {
+    notes.push('Git 状态结果已截断。')
+  }
+
+  if (diff.truncated) {
+    notes.push('Git diff 结果已截断。')
+  }
+
+  const headline = status.isClean
+    ? '指定范围内没有 Git 改动。'
+    : [
+        `共影响 ${status.totalEntries} 个路径`,
+        countParts.length > 0 ? `状态分布：${countParts.join('，')}` : '',
+        diff.hasDiff ? `diff 统计：新增 ${diffStats.addedLines} 行，删除 ${diffStats.removedLines} 行` : '当前没有可展示的 diff',
+      ].filter(Boolean).join('；')
+
+  return {
+    scopePaths: status.scopePaths,
+    isClean: status.isClean,
+    totalFiles: status.totalEntries,
+    truncated: status.truncated || diff.truncated,
+    counts,
+    files: status.entries.map(entry => ({
+      path: entry.path,
+      code: entry.code,
+      statusLabel: entry.statusLabel,
+    })),
+    diffStats: {
+      changedFiles: diffStats.changedFiles,
+      addedLines: diffStats.addedLines,
+      removedLines: diffStats.removedLines,
+      hasDiff: diff.hasDiff,
+      truncated: diff.truncated,
+    },
+    headline,
+    notes,
   }
 }
 
