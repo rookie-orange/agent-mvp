@@ -4,15 +4,18 @@ import type {
   ChatCompletionMessageParam,
 } from 'openai/resources/chat/completions'
 import type {
+  AgentExecutionReport,
   AgentPlan,
   AgentRunInput,
   AgentRunOptions,
   AgentSession,
+  AgentToolExecutionRecord,
   ToolExecutionContext,
   ToolExecutionTurnState,
 } from '../types'
 import { createResponse } from '../llm'
 import { executeToolCalls, toolDefinitions } from '../tools'
+import { buildExecutionReport } from './execution-report'
 import { buildAgentInstructions } from './prompt'
 
 const MAX_TOOL_STEPS = 30
@@ -84,6 +87,8 @@ async function runTurn(
   memory?: string,
 ) {
   const turnToolContext = createTurnToolContext(toolContext)
+  const startedAt = Date.now()
+  const executedToolCalls: AgentToolExecutionRecord[] = []
   const messages = [
     ...createBaseMessages(memory, plan),
     ...conversationMessages,
@@ -122,6 +127,11 @@ async function runTurn(
       return {
         finalAnswer,
         conversationMessages: messages.slice(1),
+        executionReport: buildExecutionReport({
+          startedAt,
+          finishedAt: Date.now(),
+          toolCalls: executedToolCalls,
+        }),
       }
     }
 
@@ -133,9 +143,10 @@ async function runTurn(
       }
     }
 
-    const toolMessages = await executeToolCalls(toolCalls, turnToolContext)
+    const toolExecutionResult = await executeToolCalls(toolCalls, turnToolContext, step)
+    executedToolCalls.push(...toolExecutionResult.records)
 
-    for (const toolMessage of toolMessages) {
+    for (const toolMessage of toolExecutionResult.messages) {
       trace(`工具返回: ${previewToolMessageContent(toolMessage.content)}`)
       messages.push(toolMessage)
     }
@@ -149,6 +160,7 @@ export function createAgentSession(options: AgentRunOptions = {}): AgentSession 
   let conversationMessages = options.conversationMessages?.slice() || []
   let memory = options.memory?.trim() || ''
   let plan = options.plan ?? null
+  let lastExecutionReport: AgentExecutionReport | null = null
   const externalToolContext = options.toolContext || {}
   const toolContext: ToolExecutionContext = {
     ...externalToolContext,
@@ -161,13 +173,16 @@ export function createAgentSession(options: AgentRunOptions = {}): AgentSession 
 
   return {
     runTurn: async (input) => {
+      lastExecutionReport = null
       const result = await runTurn(conversationMessages, input, trace, toolContext, plan, memory)
       conversationMessages = result.conversationMessages
+      lastExecutionReport = result.executionReport
       return result.finalAnswer
     },
     reset: () => {
       conversationMessages = []
       plan = null
+      lastExecutionReport = null
       externalToolContext.onPlanUpdated?.(null)
     },
     setMemory: (nextMemory) => {
@@ -180,5 +195,6 @@ export function createAgentSession(options: AgentRunOptions = {}): AgentSession 
     },
     getPlan: () => plan,
     getConversationMessages: () => conversationMessages.slice(),
+    getLastExecutionReport: () => lastExecutionReport,
   }
 }

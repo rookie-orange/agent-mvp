@@ -57,6 +57,7 @@ Current capabilities:
 - high-risk mutation tools require CLI approval before execution
 - command execution is limited to a validation whitelist
 - `pnpm typecheck` and `pnpm build` run automatically after successful mutations
+- every real interaction now prints a structured execution report covering tool calls, affected paths, backups, and validation results
 - all mutation tools create backups before editing
 - distributable `.js` output is built with `tsdown`
 
@@ -64,12 +65,13 @@ Current capabilities:
 
 ### Current Stage
 
-#### Stage 8: Planner And Self-Review
+#### Stage 8: Planner, Execution Report And Self-Review
 
 - Status: In progress on [`planner`](https://github.com/rookie-orange/agent-mvp/tree/planner)
 - Focus:
   - add task planning before complex edits
   - display and persist the current session plan in the CLI
+  - output a structured execution report after each turn
   - output a more structured self-review summary after changes
 
 ### Recently Completed Stage

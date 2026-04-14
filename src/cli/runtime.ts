@@ -1,5 +1,5 @@
 import type { PersistedSessionData } from '../persistence/session-store'
-import type { AgentPlan, AgentRunOptions, AgentSession, ToolExecutionContext } from '../types'
+import type { AgentExecutionReport, AgentPlan, AgentRunOptions, AgentSession, ToolExecutionContext } from '../types'
 import { createAgentSession } from '../agent'
 import {
   clearPersistedSession,
@@ -117,6 +117,7 @@ export async function saveCurrentSession(runtime: CliRuntime) {
 
 export async function runRuntimeTurn(runtime: CliRuntime, input: string) {
   const output = await runtime.session.runTurn(input)
+  const executionReport = runtime.session.getLastExecutionReport()
 
   if (!runtime.currentSessionId) {
     runtime.currentSessionId = createSessionId()
@@ -126,7 +127,13 @@ export async function runRuntimeTurn(runtime: CliRuntime, input: string) {
 
   await saveCurrentSession(runtime)
 
-  return output
+  return {
+    output,
+    executionReport,
+  } satisfies {
+    output: string
+    executionReport: AgentExecutionReport | null
+  }
 }
 
 export async function renameRuntimeSession(runtime: CliRuntime, title: string) {

@@ -2,6 +2,7 @@ import type { AgentPlan, ToolApprovalRequest } from '../types'
 import type { CliRuntime } from './runtime'
 import process from 'node:process'
 import { createInterface } from 'node:readline/promises'
+import { formatExecutionReport } from '../agent/execution-report'
 import { executeCommand } from '../commands'
 import {
   getMemoryFilePath,
@@ -55,13 +56,14 @@ function printPlanUpdate(plan: AgentPlan | null) {
 
 async function runUserInput(runtime: CliRuntime, input: string) {
   const isNewSession = !runtime.currentSessionId
-  const output = await runRuntimeTurn(runtime, input)
+  const result = await runRuntimeTurn(runtime, input)
 
   if (isNewSession && runtime.currentSessionId && runtime.currentSessionTitle) {
     console.log(`已创建会话：${runtime.currentSessionId} (${runtime.currentSessionTitle})`)
   }
 
-  console.log(`\n${output}\n`)
+  console.log(`\n${result.output}\n`)
+  console.log(`${formatExecutionReport(result.executionReport)}\n`)
 }
 
 async function handleCliInput(runtime: CliRuntime, input: string) {

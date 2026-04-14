@@ -57,6 +57,7 @@
 - 高风险修改工具执行前会先进入 CLI 审批
 - 命令执行限制为白名单验证命令
 - 修改成功后会自动运行 `pnpm typecheck` 与 `pnpm build`
+- 每轮真实交互后都会输出结构化的 execution report，汇总工具调用、影响路径、备份与验证结果
 - 所有写类工具在执行前会自动生成备份
 - 通过 `tsdown` 构建可分发的 `.js` 产物
 
@@ -64,12 +65,13 @@
 
 ### 当前阶段
 
-#### 阶段 8：Planner 与自检总结
+#### 阶段 8：Planner、Execution Report 与自检总结
 
 - 状态：进行中，位于 [`main`](https://github.com/rookie-orange/agent-mvp/tree/stage%2planner)
 - 目标：
   - 在复杂编辑前增加任务规划
   - 在 CLI 中展示并持久化当前会话计划
+  - 在每轮执行后输出结构化 execution report
   - 在修改后输出更结构化的自检总结
 
 ### 最近完成阶段

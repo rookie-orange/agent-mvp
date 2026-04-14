@@ -1,5 +1,5 @@
 import type { ChatCompletionMessageToolCall, ChatCompletionToolMessageParam } from 'openai/resources/chat/completions'
-import type { ToolExecutionContext } from '@/types'
+import type { AgentToolExecutionRecord, ToolExecutionContext } from '@/types'
 import { isObject } from '@/shared/general'
 import {
   applyFileEditsTool,
@@ -84,6 +84,11 @@ interface PendingToolMessage {
   payload: ToolMessagePayload
 }
 
+interface ExecuteToolCallsResult {
+  messages: ChatCompletionToolMessageParam[]
+  records: AgentToolExecutionRecord[]
+}
+
 function getResultPath(result: Record<string, unknown>, fieldName: string) {
   const value = result[fieldName]
 
@@ -140,58 +145,94 @@ export const toolDefinitions = tools.map(tool => tool.definition)
 export async function executeToolCalls(
   toolCalls: ChatCompletionMessageToolCall[],
   context: ToolExecutionContext = {},
-) {
+  step = 1,
+): Promise<ExecuteToolCallsResult> {
   const pendingMessages: PendingToolMessage[] = []
+  const records: AgentToolExecutionRecord[] = []
   const mutationResultIndices: number[] = []
   const mutationAffectedPaths = new Set<string>()
 
   for (const toolCall of toolCalls) {
     if (toolCall.type !== 'function') {
+      const error = `暂不支持的工具调用类型: ${toolCall.type}`
+
       pendingMessages.push({
         toolCallId: toolCall.id,
         payload: {
           ok: false,
-          error: `暂不支持的工具调用类型: ${toolCall.type}`,
+          error,
         },
+      })
+      records.push({
+        step,
+        toolCallId: toolCall.id,
+        toolName: toolCall.type,
+        ok: false,
+        args: null,
+        error,
       })
       continue
     }
 
-    const tool = toolRegistry.get(toolCall.function.name)
+    const toolName = toolCall.function.name
+    const tool = toolRegistry.get(toolName)
 
     if (!tool) {
+      const error = `未知工具: ${toolName}`
+
       pendingMessages.push({
         toolCallId: toolCall.id,
         payload: {
           ok: false,
-          error: `未知工具: ${toolCall.function.name}`,
+          error,
         },
+      })
+      records.push({
+        step,
+        toolCallId: toolCall.id,
+        toolName,
+        ok: false,
+        args: null,
+        error,
       })
       continue
     }
 
+    let args: Record<string, unknown> | null = null
+
     try {
-      const args = parseToolArguments(toolCall.function.arguments)
+      args = parseToolArguments(toolCall.function.arguments)
       const rawResult = await tool.execute(args, context)
-      const validation = await buildMutationValidation(toolCall.function.name, rawResult)
+      const validation = await buildMutationValidation(toolName, rawResult)
       const extraPayload: Record<string, unknown> = {}
 
       if (validation) {
         extraPayload.validation = validation
       }
 
+      const mergedResult = mergeResultPayload(rawResult, extraPayload)
+
       pendingMessages.push({
         toolCallId: toolCall.id,
         payload: {
           ok: true,
-          result: mergeResultPayload(rawResult, extraPayload),
+          result: mergedResult,
         },
       })
+      records.push({
+        step,
+        toolCallId: toolCall.id,
+        toolName,
+        ok: true,
+        args,
+        result: mergedResult,
+      })
 
-      if (isMutationToolName(toolCall.function.name)) {
-        mutationResultIndices.push(pendingMessages.length - 1)
+      if (isMutationToolName(toolName)) {
+        const recordIndex = records.length - 1
+        mutationResultIndices.push(recordIndex)
 
-        for (const path of getAffectedPaths(toolCall.function.name, rawResult)) {
+        for (const path of getAffectedPaths(toolName, rawResult)) {
           mutationAffectedPaths.add(path)
         }
       }
@@ -205,6 +246,14 @@ export async function executeToolCalls(
           ok: false,
           error: message,
         },
+      })
+      records.push({
+        step,
+        toolCallId: toolCall.id,
+        toolName,
+        ok: false,
+        args,
+        error: message,
       })
     }
   }
@@ -237,8 +286,9 @@ export async function executeToolCalls(
 
     if (lastMutationIndex !== undefined) {
       const lastMutationMessage = pendingMessages[lastMutationIndex]
+      const lastMutationRecord = records[lastMutationIndex]
 
-      if (lastMutationMessage?.payload.ok) {
+      if (lastMutationMessage?.payload.ok && lastMutationRecord?.ok) {
         const extraPayload: Record<string, unknown> = {}
 
         if (changeSummary) {
@@ -249,19 +299,25 @@ export async function executeToolCalls(
           extraPayload.workspaceValidation = workspaceValidation
         }
 
-        lastMutationMessage.payload.result = mergeResultPayload(
+        const mergedResult = mergeResultPayload(
           lastMutationMessage.payload.result,
           extraPayload,
         )
+
+        lastMutationMessage.payload.result = mergedResult
+        lastMutationRecord.result = mergedResult
       }
     }
   }
 
-  return pendingMessages.map((message) => {
-    return {
-      role: 'tool',
-      tool_call_id: message.toolCallId,
-      content: serializeToolResult(message.payload),
-    } satisfies ChatCompletionToolMessageParam
-  })
+  return {
+    messages: pendingMessages.map((message) => {
+      return {
+        role: 'tool',
+        tool_call_id: message.toolCallId,
+        content: serializeToolResult(message.payload),
+      } satisfies ChatCompletionToolMessageParam
+    }),
+    records,
+  }
 }

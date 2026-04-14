@@ -46,6 +46,46 @@ export interface AgentRunOptions {
   toolContext?: ToolExecutionContext
 }
 
+export interface AgentToolExecutionRecord {
+  step: number
+  toolCallId: string
+  toolName: string
+  ok: boolean
+  args: Record<string, unknown> | null
+  result?: unknown
+  error?: string
+}
+
+export interface AgentExecutionReportToolCall {
+  step: number
+  toolName: string
+  status: 'success' | 'failed'
+  note?: string
+}
+
+export interface AgentExecutionReportValidation {
+  passed: boolean
+  requestedCommands: string[]
+  executedCommands: string[]
+  failedCommands: string[]
+  skippedCommands: string[]
+}
+
+export interface AgentExecutionReport {
+  startedAt: string
+  finishedAt: string
+  durationMs: number
+  totalToolCalls: number
+  successfulToolCalls: number
+  failedToolCalls: number
+  toolCalls: AgentExecutionReportToolCall[]
+  affectedPaths: string[]
+  backupIds: string[]
+  changeSummaryHeadline?: string
+  changeSummaryNotes: string[]
+  workspaceValidation?: AgentExecutionReportValidation
+}
+
 export interface AgentSession {
   runTurn: (input: AgentRunInput) => Promise<string>
   reset: () => void
@@ -54,6 +94,7 @@ export interface AgentSession {
   setPlan: (plan: AgentPlan | null) => void
   getPlan: () => AgentPlan | null
   getConversationMessages: () => ChatCompletionMessageParam[]
+  getLastExecutionReport: () => AgentExecutionReport | null
 }
 
 export interface CreateResponseParams {
