@@ -15,7 +15,7 @@ import { createResponse } from '../llm'
 import { executeToolCalls, toolDefinitions } from '../tools'
 import { buildAgentInstructions } from './prompt'
 
-const MAX_TOOL_STEPS = 10
+const MAX_TOOL_STEPS = 30
 
 function createBaseMessages(memory?: string, plan?: AgentPlan | null): ChatCompletionMessageParam[] {
   return [{ role: 'system', content: buildAgentInstructions(memory, plan) }]
