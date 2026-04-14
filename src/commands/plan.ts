@@ -1,6 +1,6 @@
+import type { CliCommand } from './types'
 import { saveCurrentSession } from '../cli/runtime'
 import { formatAgentPlan } from '../planner'
-import type { CliCommand } from './types'
 
 const planCommand: CliCommand = {
   name: 'plan',

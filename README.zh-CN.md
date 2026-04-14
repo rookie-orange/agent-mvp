@@ -1,12 +1,12 @@
 # agent-mvp
 
-[English README](./README.md)
+[English](./README.md)
 
-这是一个用于学习 AI Agent 演进过程的最小项目：从一次普通模型调用开始，逐步加入工具、安全层、回滚、持久化记忆和会话管理。
+这是一个用于学习 AI Agent 演进过程的最小项目：从一次普通模型调用开始，逐步加入工具、安全层、回滚、持久化记忆和会话管理等功能。
 
 ## 当前状态
 
-当前项目处于 **在交互式 CLI 之上补齐审批与验证闭环** 阶段，对应当前的 [`stage/approval-validation`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation) 分支。
+当前项目已经进入 **带 planner 的审批 / 验证交互式 CLI** 阶段，当前实现位于 [`main`](https://github.com/rookie-orange/agent-mvp/tree/main)。上一个里程碑版本仍保留在专门的 [`stage/approval-validation`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation) 分支中。
 
 当前已经具备的能力：
 
@@ -16,13 +16,16 @@
 - 从 `.agent/memory.md` 自动加载项目级持久化记忆
 - 在 `.agent/sessions/*.json` 下保存多会话历史
 - 启动时不自动恢复上次对话，需由用户显式加载历史会话
+- 会话级 planner 会随每个已保存 session 一起持久化
 - 内置 CLI 会话命令：
   - `/sessions`
-  - `/load <sessionId>`
+  - `/load <session-id>`
   - `/new [title]`
   - `/rename <title>`
-  - `/delete <sessionId>`
+  - `/delete <session-id>`
   - `/clear`
+  - `/plan`
+  - `/clear-plan`
   - `/memory`
   - `/remember <内容>`
   - `/forget`
@@ -36,6 +39,7 @@
   - `gitDiff`
   - `runCommand`
   - `validateWorkspace`
+  - `updatePlan`
   - `listBackups`
   - `getLatestBackup`
   - `writeFile`
@@ -60,23 +64,23 @@
 
 ### 当前阶段
 
+#### 阶段 8：Planner 与自检总结
+
+- 状态：进行中，位于 [`main`](https://github.com/rookie-orange/agent-mvp/tree/stage%2planner)
+- 目标：
+  - 在复杂编辑前增加任务规划
+  - 在 CLI 中展示并持久化当前会话计划
+  - 在修改后输出更结构化的自检总结
+
+### 最近完成阶段
+
 #### 阶段 7：确认与验证闭环
 
-- 状态：进行中，位于 [`stage/approval-validation`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation)
-- 目标：
+- 状态：已完成，分支为 [`stage/approval-validation`](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation)
+- 已完成内容：
   - 在高风险写操作前加入确认边界
   - 让 Agent 运行白名单项目命令
   - 在编辑后自动执行 typecheck / build 验证
-
-### 下一阶段规划
-
-#### 阶段 8：Planner 与自检总结
-
-- 状态：规划中，暂未创建分支
-- 目标：
-  - 在长任务中更明显地展示动作日志和 diff
-  - 在复杂编辑前增加任务规划
-  - 在修改后输出结构化自检总结
 
 ### 已完成阶段
 
@@ -125,7 +129,7 @@
   - CLI 级记忆命令
   - 将 memory 注入 Agent prompt
 
-#### 阶段 6：多会话交互式 CLI
+#### 阶段 6：连续对话与多对话CLI
 
 - 分支：[`main`](https://github.com/rookie-orange/agent-mvp/tree/main)
 - 已完成内容：
@@ -143,9 +147,9 @@
 | 阶段 3：工作区 File IO | 已完成 | `stage/file-io` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Ffile-io) |
 | 阶段 4：Undo / Redo 安全层 | 已完成 | `stage/undo-redo` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fundo-redo) |
 | 阶段 5：持久化记忆基础层 | 已完成 | `stage/memory` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fmemory) |
-| 阶段 6：多会话交互式 CLI | 已在当前分支完成 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
-| 阶段 7：确认与验证闭环 | 当前阶段 | `stage/approval-validation` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation) |
-| 阶段 8：Planner 与自检总结 | 规划中 | N/A | 尚未创建 |
+| 阶段 6：连续对话与多对话CLI | 已在当前分支完成 | `main` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/main) |
+| 阶段 7：确认与验证闭环 | 已完成 | `stage/approval-validation` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2Fapproval-validation) |
+| 阶段 8：Planner 与自检总结 | 当前在 `planner` 上继续推进 | `planner` | [打开分支](https://github.com/rookie-orange/agent-mvp/tree/stage%2planner) |
 
 ## 工具分组
 
@@ -165,6 +169,10 @@
 
 - `runCommand`
 - `validateWorkspace`
+
+### Planner 类
+
+- `updatePlan`
 
 ### 修改类
 
@@ -200,16 +208,19 @@
 - 历史对话不会在启动时自动加载
 - 已保存会话必须通过 `/load <sessionId>` 显式加载
 - 一个新草稿会话在第一次真实对话成功后，才会被保存成正式会话
+- 当前计划会跟随 session 一起保存，并在该 session 被重新加载时恢复
 
 常用命令：
 
 ```txt
 /sessions
-/load <sessionId>
+/load <session-id>
 /new [title]
 /rename <title>
-/delete <sessionId>
+/delete <session-id>
 /clear
+/plan
+/clear-plan
 /memory
 /remember <content>
 /forget
@@ -218,7 +229,9 @@
 命令语义：
 
 - `/clear`：清空当前内存中的会话，并删除当前已加载会话对应的持久化文件
-- `/delete <sessionId>`：按 ID 删除指定已保存会话
+- `/delete <session-id>`：按 ID 删除指定已保存会话
+- `/plan`：打印当前 session 的执行计划
+- `/clear-plan`：只清空当前 session 的计划，不删除对话历史
 - `/rename <title>`：重命名当前已保存会话，或在草稿阶段先修改会话标题
 
 ## 回滚模型
@@ -250,10 +263,12 @@ src/
   commands/     # slash commands 与命令注册表
   config/       # 环境变量配置
   llm/          # 模型调用层
+  planner/      # 会话级计划模型与格式化
   persistence/  # 本地记忆与会话存储
   tools/        # 工具定义与执行
     files/      # 工作区读写与恢复工具
     git/        # Git 自检工具
+    planner/    # 计划更新工具
     shell/      # 命令执行与工作区验证工具
   types/        # 共享类型
   index.ts      # CLI 入口
@@ -267,14 +282,26 @@ src/
 pnpm install
 ```
 
-启动交互式 CLI：
+配置环境变量：
+
+```bash
+# 复制 .env.example 到 .env
+cp .env.example .env
+# 配置 API Key
+OPENAI_API_KEY=your_openai_api_key_here
+# 配置 URL，默认为 https://api.openai.com/v1
+OPENAI_BASE_URL=https://api.openai.com/v1
+# 配置 模型，默认为 gpt-4.1-mini
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+启动 CLI：
 
 ```bash
 pnpm dev
-pnpm chat
 ```
 
-带首条消息启动交互式 CLI：
+带首条消息启动 CLI：
 
 ```bash
 pnpm dev "这个项目里有哪些工具？"
@@ -314,14 +341,3 @@ pnpm start "列出 src/tools 目录下的文件"
 ## 说明
 
 - 这些阶段分支被保留为学习检查点，方便回看项目是如何一步步演进的
-- 当前实现依然是 CLI first
-- 交互层已经初步具备，但确认边界和编辑后验证仍然是下一步最实用的增强方向
-
-## 下一步实用路线
-
-当前状态下，最值得继续做的是：
-
-1. 给写操作加确认机制和 `--yes` 模式
-2. 增加流式输出和更明确的动作 trace
-3. 在编辑完成后自动执行 typecheck、test、lint 等验证
-4. 为长会话增加摘要压缩，避免历史无限膨胀
