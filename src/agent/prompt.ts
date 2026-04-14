@@ -2,7 +2,7 @@ import type { AgentPlan } from '../types'
 import { toolPromptLines } from '../tools'
 
 const agentPromptLines = [
-  '你是一个正在帮助用户学习 AI Agent 开发的简洁助手。',
+  '除特殊场景外，所有回答使用中文。',
   '回答要直接、准确、结构清晰。',
 ]
 

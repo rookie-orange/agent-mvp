@@ -1,6 +1,5 @@
-import type { AgentPlan } from '../types'
 import type { PersistedSessionData } from '../persistence/session-store'
-import type { AgentRunOptions, AgentSession, ToolExecutionContext } from '../types'
+import type { AgentPlan, AgentRunOptions, AgentSession, ToolExecutionContext } from '../types'
 import { createAgentSession } from '../agent'
 import {
   clearPersistedSession,
@@ -32,6 +31,7 @@ function createRuntimeAgentSession(options: {
 }) {
   const sessionOptions: AgentRunOptions = {
     memory: options.memory,
+    onTrace: message => console.log(message),
   }
 
   if (options.conversationMessages) {

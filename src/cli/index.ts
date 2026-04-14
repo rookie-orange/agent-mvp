@@ -3,12 +3,12 @@ import type { CliRuntime } from './runtime'
 import process from 'node:process'
 import { createInterface } from 'node:readline/promises'
 import { executeCommand } from '../commands'
-import { formatAgentPlan } from '../planner'
 import {
   getMemoryFilePath,
   listPersistedSessions,
   loadPersistedMemory,
 } from '../persistence'
+import { formatAgentPlan } from '../planner'
 import { createCliRuntime, runRuntimeTurn } from './runtime'
 
 async function confirmApproval(
@@ -107,7 +107,7 @@ export async function startCli(initialInput?: string) {
   }
 
   if (sessions.length > 0) {
-    console.log(`已发现 ${sessions.length} 个历史会话。使用 /sessions 查看，/load <sessionId> 加载。`)
+    console.log(`已发现 ${sessions.length} 个历史会话。使用 /sessions 查看，/load <session-id> 加载。`)
   }
 
   console.log('输入 /help 查看命令，/exit 退出。')

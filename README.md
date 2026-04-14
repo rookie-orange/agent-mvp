@@ -206,7 +206,7 @@ Current behavior:
 
 - project memory is loaded automatically on startup
 - previous conversations are not auto-loaded on startup
-- saved sessions must be loaded explicitly with `/load <sessionId>`
+- saved sessions must be loaded explicitly with `/load <session-id>`
 - a new draft session is only persisted after the first successful real interaction
 - the current plan is saved with the session and restored when that session is loaded again
 

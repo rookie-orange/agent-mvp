@@ -1,3 +1,5 @@
+import type { PersistedSessionSummary } from '../persistence/session-store'
+import type { CliCommand } from './types'
 import {
   clearRuntimeSession,
   deleteRuntimeSession,
@@ -9,8 +11,6 @@ import {
   listPersistedSessions,
   loadPersistedSession,
 } from '../persistence'
-import type { PersistedSessionSummary } from '../persistence/session-store'
-import type { CliCommand } from './types'
 
 function formatSessionUpdatedAt(updatedAt: string) {
   const date = new Date(updatedAt)
@@ -50,7 +50,7 @@ const sessionsCommand: CliCommand = {
 const loadCommand: CliCommand = {
   name: 'load',
   description: '加载指定会话',
-  usage: '/load <sessionId>',
+  usage: '/load <session-id>',
   run: async ({ runtime, argsText, write }) => {
     const sessionId = argsText.trim()
 
@@ -105,7 +105,7 @@ const renameCommand: CliCommand = {
 const deleteCommand: CliCommand = {
   name: 'delete',
   description: '删除指定已保存会话',
-  usage: '/delete <sessionId>',
+  usage: '/delete <session-id>',
   run: async ({ runtime, argsText, write }) => {
     const sessionId = argsText.trim()
 
